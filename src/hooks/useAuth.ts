@@ -80,7 +80,9 @@ export const useAuth = () => {
 
     initAuth();
 
-    // Auth state change listener
+    // Auth state change listener apenas se Supabase configurado
+    let subscription: any = null;
+    
     if (isSupabaseConfigured) {
       const { data } = supabase.auth.onAuthStateChange(
         async (event, session) => {
@@ -103,11 +105,14 @@ export const useAuth = () => {
           }
         }
       );
-
-      return () => {
-        data.subscription.unsubscribe();
-      };
+      subscription = data.subscription;
     }
+
+    return () => {
+      if (subscription) {
+        subscription.unsubscribe();
+      }
+    };
   }, []);
 
   const login = async (credentials: { email: string; password: string }) => {
