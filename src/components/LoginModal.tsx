@@ -38,10 +38,12 @@ const LoginModal: React.FC<LoginModalProps> = ({
   const resetForm = () => {
     setFormData({ email: '', password: '' });
     setShowPassword(false);
+    setIsLogin(true);
   };
 
   const handleClose = () => {
     resetForm();
+    setError(null);
     onClose();
   };
 
