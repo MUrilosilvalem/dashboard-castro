@@ -159,7 +159,7 @@ const BulkImportTab: React.FC = () => {
         <Upload className="w-6 h-6 text-blue-600" />
         <div>
           <h2 className="text-xl font-semibold text-gray-900">Importação em Massa</h2>
-          <p className="text-sm text-gray-600">Importe dados de exemplo, CSV ou JSON</p>
+          <p className="text-sm text-gray-600">Importe dados de exemplo, arquivos CSV ou dados JSON</p>
         </div>
       </div>
 
