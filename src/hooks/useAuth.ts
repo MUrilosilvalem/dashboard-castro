@@ -153,21 +153,6 @@ export const useAuth = () => {
     }
 
     try {
-      // Verificar se o usuário está aprovado antes de tentar login
-      const { data: approvedUser, error: checkError } = await supabase
-        .from('approved_users')
-        .select('email, approved')
-        .eq('email', credentials.email)
-        .single();
-
-      if (checkError && checkError.code !== 'PGRST116') {
-        throw checkError;
-      }
-
-      if (!approvedUser || !approvedUser.approved) {
-        throw new Error('Usuário não aprovado. Entre em contato com o administrador.');
-      }
-
       await supabase.auth.signOut();
       setUser(null);
     } catch (error) {
