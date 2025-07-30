@@ -98,9 +98,9 @@ export const useAuth = () => {
         .from('approved_users')
         .select('email, approved')
         .eq('email', credentials.email)
-        .single();
+        .maybeSingle();
 
-      if (checkError && checkError.code !== 'PGRST116') {
+      if (checkError) {
         throw checkError;
       }
 
