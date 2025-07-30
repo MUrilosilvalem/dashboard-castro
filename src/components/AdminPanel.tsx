@@ -1137,42 +1137,261 @@ const FaturamentoTab: React.FC<any> = ({
 
 // Componente para aba de Importação
 const ImportTab: React.FC<{ onImport: () => void; isImporting: boolean }> = ({ onImport, isImporting }) => {
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [importType, setImportType] = useState<'csv' | 'json'>('csv');
+  const [dragActive, setDragActive] = useState(false);
+
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      setSelectedFile(e.dataTransfer.files[0]);
+    }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setSelectedFile(e.target.files[0]);
+    }
+  };
+
+  const downloadTemplate = () => {
+    if (importType === 'csv') {
+      const csvContent = [
+        // Template para métricas de atendentes
+        'tipo,mes_ano,unidade_codigo,atendente_nome,atendente_email,valor_orcamentos_registrados,valor_orcamentos_convertidos,qtde_exames_vendidos,qtde_pacientes_atendidos,nps,faturamento_total',
+        'unidade,,,Centro Médico Principal,CMP001,,,,,,',
+        'atendente,,,Ana Silva,ana.silva@clinica.com,,,,,',
+        'metrica_atendente,2025-01,CMP001,Ana Silva,ana.silva@clinica.com,50000,40000,120,80,85,',
+        'faturamento,2025-01,CMP001,,,,,,,150000'
+      ].join('\n');
+      
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', 'template_importacao.csv');
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } else {
+      const jsonTemplate = {
+        unidades: [
+          { nome: "Centro Médico Principal", codigo: "CMP001", ativo: true }
+        ],
+        atendentes: [
+          { nome: "Ana Silva", email: "ana.silva@clinica.com", unidade_codigo: "CMP001", ativo: true }
+        ],
+        metricas_atendentes: [
+          {
+            mes_ano: "2025-01",
+            unidade_codigo: "CMP001",
+            atendente_email: "ana.silva@clinica.com",
+            valor_orcamentos_registrados: 50000,
+            valor_orcamentos_convertidos: 40000,
+            qtde_exames_vendidos: 120,
+            qtde_pacientes_atendidos: 80,
+            nps: 85
+          }
+        ],
+        metricas_unidades: [
+          { mes_ano: "2025-01", unidade_codigo: "CMP001", faturamento_total: 150000 }
+        ]
+      };
+      
+      const blob = new Blob([JSON.stringify(jsonTemplate, null, 2)], { type: 'application/json' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', 'template_importacao.json');
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
+
+  const handleImport = async () => {
+    if (!selectedFile) {
+      alert('Selecione um arquivo para importar');
+      return;
+    }
+
+    // Aqui você implementaria a lógica de parsing do arquivo
+    // Por enquanto, vamos simular a importação
+    console.log('Importando arquivo:', selectedFile.name);
+    onImport();
+  };
+
   return (
     <div>
       <h2 className="text-xl font-semibold mb-6">Importação de Dados</h2>
       
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
-        <h3 className="text-lg font-medium text-blue-900 mb-4">
-          Importar Dados de Exemplo
+      {/* Seleção do tipo de arquivo */}
+      <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
+        <h3 className="text-lg font-medium text-gray-900 mb-4">
+          Tipo de Arquivo
         </h3>
-        <p className="text-blue-800 mb-4">
-          Esta função irá importar um conjunto completo de dados de exemplo, incluindo:
-        </p>
-        <ul className="list-disc list-inside text-blue-800 mb-6 space-y-1">
-          <li>3 Unidades de exemplo</li>
-          <li>4 Atendentes distribuídos pelas unidades</li>
-          <li>Métricas de performance dos últimos meses</li>
-          <li>Dados de faturamento por unidade</li>
-        </ul>
+        <div className="flex gap-4 mb-4">
+          <label className="flex items-center">
+            <input
+              type="radio"
+              value="csv"
+              checked={importType === 'csv'}
+              onChange={(e) => setImportType(e.target.value as 'csv')}
+              className="mr-2"
+            />
+            CSV (Comma Separated Values)
+          </label>
+          <label className="flex items-center">
+            <input
+              type="radio"
+              value="json"
+              checked={importType === 'json'}
+              onChange={(e) => setImportType(e.target.value as 'json')}
+              className="mr-2"
+            />
+            JSON (JavaScript Object Notation)
+          </label>
+        </div>
         
         <button
-          onClick={onImport}
-          disabled={isImporting}
-          className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+          onClick={downloadTemplate}
+          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
         >
-          {isImporting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Upload className="w-5 h-5" />}
-          {isImporting ? 'Importando...' : 'Importar Dados de Exemplo'}
+          <Download className="w-4 h-4" />
+          Baixar Template {importType.toUpperCase()}
         </button>
       </div>
 
-      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
-        <h3 className="text-lg font-medium text-yellow-900 mb-2">
-          ⚠️ Atenção
+      {/* Área de upload */}
+      <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
+        <h3 className="text-lg font-medium text-gray-900 mb-4">
+          Selecionar Arquivo
         </h3>
-        <p className="text-yellow-800">
-          A importação irá sobrescrever dados existentes com os mesmos códigos/emails. 
-          Certifique-se de fazer backup dos dados importantes antes de prosseguir.
-        </p>
+        
+        <div
+          className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+            dragActive 
+              ? 'border-blue-400 bg-blue-50' 
+              : 'border-gray-300 hover:border-gray-400'
+          }`}
+          onDragEnter={handleDrag}
+          onDragLeave={handleDrag}
+          onDragOver={handleDrag}
+          onDrop={handleDrop}
+        >
+          <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+          <p className="text-lg font-medium text-gray-900 mb-2">
+            Arraste e solte seu arquivo aqui
+          </p>
+          <p className="text-gray-600 mb-4">ou</p>
+          
+          <input
+            type="file"
+            accept={importType === 'csv' ? '.csv' : '.json'}
+            onChange={handleFileSelect}
+            className="hidden"
+            id="file-upload"
+          />
+          <label
+            htmlFor="file-upload"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer"
+          >
+            Selecionar Arquivo
+          </label>
+          
+          {selectedFile && (
+            <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+              <p className="text-sm text-gray-700">
+                <strong>Arquivo selecionado:</strong> {selectedFile.name}
+              </p>
+              <p className="text-xs text-gray-500">
+                Tamanho: {(selectedFile.size / 1024).toFixed(2)} KB
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Botão de importação */}
+      {selectedFile && (
+        <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
+          <button
+            onClick={handleImport}
+            disabled={isImporting}
+            className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+          >
+            {isImporting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Upload className="w-5 h-5" />}
+            {isImporting ? 'Importando...' : 'Importar Dados'}
+          </button>
+        </div>
+      )}
+
+      {/* Instruções */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
+        <h3 className="text-lg font-medium text-blue-900 mb-4">
+          📋 Instruções de Importação
+        </h3>
+        <div className="space-y-3 text-blue-800">
+          <div>
+            <strong>1. Baixe o template</strong>
+            <p className="text-sm">Clique em "Baixar Template" para obter o formato correto</p>
+          </div>
+          <div>
+            <strong>2. Preencha seus dados</strong>
+            <p className="text-sm">Substitua os dados de exemplo pelos seus dados reais</p>
+          </div>
+          <div>
+            <strong>3. Faça o upload</strong>
+            <p className="text-sm">Arraste o arquivo ou clique para selecionar</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Formato dos dados */}
+      <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
+        <h3 className="text-lg font-medium text-gray-900 mb-4">
+          📊 Formato dos Dados
+        </h3>
+        
+        {importType === 'csv' ? (
+          <div className="space-y-3 text-sm text-gray-700">
+            <p><strong>Colunas obrigatórias para CSV:</strong></p>
+            <ul className="list-disc list-inside space-y-1 ml-4">
+              <li><code>tipo</code> - unidade, atendente, metrica_atendente, faturamento</li>
+              <li><code>mes_ano</code> - Formato YYYY-MM (ex: 2025-01)</li>
+              <li><code>unidade_codigo</code> - Código único da unidade</li>
+              <li><code>atendente_email</code> - Email único do atendente</li>
+              <li><code>valor_orcamentos_registrados</code> - Valor em reais</li>
+              <li><code>nps</code> - Valor de 0 a 100</li>
+            </ul>
+          </div>
+        ) : (
+          <div className="space-y-3 text-sm text-gray-700">
+            <p><strong>Estrutura JSON:</strong></p>
+            <ul className="list-disc list-inside space-y-1 ml-4">
+              <li><code>unidades[]</code> - Array com dados das unidades</li>
+              <li><code>atendentes[]</code> - Array com dados dos atendentes</li>
+              <li><code>metricas_atendentes[]</code> - Array com métricas</li>
+              <li><code>metricas_unidades[]</code> - Array com faturamento</li>
+            </ul>
+          </div>
+        )}
+      </div>
       </div>
     </div>
   );
