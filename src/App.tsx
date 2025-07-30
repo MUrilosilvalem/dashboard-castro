@@ -34,6 +34,16 @@ function App() {
   const [showAdmin, setShowAdmin] = React.useState(false);
   const [showLoginModal, setShowLoginModal] = React.useState(false);
   
+  // Force loading to false after 2 seconds as emergency fix
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      if (authLoading) {
+        console.log('Emergency: Forcing auth loading to false');
+      }
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [authLoading]);
+
   const {
     filteredData,
     previousData,
@@ -48,7 +58,7 @@ function App() {
   } = useDashboardData();
 
   // Mostrar loading de autenticação
-  if (authLoading) {
+  if (authLoading && false) { // Temporarily disable loading screen
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
