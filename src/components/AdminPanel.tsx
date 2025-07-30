@@ -25,7 +25,7 @@ interface AdminPanelProps {
 
 const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
   const [activeTab, setActiveTab] = useState<'unidades' | 'atendentes' | 'metricas' | 'import'>('unidades');
-  const [loading, setLoading] = useState(true);
+  const [isGlobalLoading, setIsGlobalLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // Estados para dados
@@ -42,7 +42,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
   }, [activeTab]);
 
   const loadData = async () => {
-    setLoading(true);
+    setIsGlobalLoading(true);
     try {
       switch (activeTab) {
         case 'unidades':
@@ -62,7 +62,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
       console.error('Erro ao carregar dados:', error);
       setMessage({ type: 'error', text: 'Erro ao carregar dados' });
     }
-    setLoading(false);
+    setIsGlobalLoading(false);
   };
 
   const showMessage = (type: 'success' | 'error', text: string) => {
@@ -71,7 +71,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
   };
 
   const handleSave = async (data: any) => {
-    setLoading(true);
+    setIsGlobalLoading(true);
     try {
       if (activeTab === 'unidades') {
         if (editingItem) {
@@ -97,13 +97,13 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
     } catch (error: any) {
       showMessage('error', error.message || 'Erro ao salvar');
     }
-    setLoading(false);
+    setIsGlobalLoading(false);
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm('Tem certeza que deseja excluir este item?')) return;
     
-    setLoading(true);
+    setIsGlobalLoading(true);
     try {
       if (activeTab === 'unidades') {
         await DashboardService.deleteUnidade(id);
@@ -117,11 +117,11 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
     } catch (error: any) {
       showMessage('error', error.message || 'Erro ao excluir');
     }
-    setLoading(false);
+    setIsGlobalLoading(false);
   };
 
   const handleBulkImport = async () => {
-    setLoading(true);
+    setIsGlobalLoading(true);
     try {
       const sampleData = BulkImportService.generateSampleData();
       const result = await BulkImportService.importBulkData(sampleData);
@@ -135,7 +135,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
     } catch (error: any) {
       showMessage('error', error.message || 'Erro na importação');
     }
-    setLoading(false);
+    setIsGlobalLoading(false);
   };
 
   if (!isSupabaseConfigured) {
@@ -207,10 +207,10 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
             <div className="flex gap-2">
               <button
                 onClick={handleBulkImport}
-                disabled={loading}
+                disabled={isGlobalLoading}
                 className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
               >
-                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                {isGlobalLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
                 Importar Dados de Exemplo
               </button>
             </div>
@@ -259,46 +259,48 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
 
           {/* Content */}
           <div className="p-6">
-            {loading && (
+            <div className={`relative ${isGlobalLoading ? 'pointer-events-none opacity-50' : ''}`}>
+              {activeTab === 'unidades' && (
+                <UnidadesTab
+                  data={unidades}
+                  onAdd={() => { setEditingItem(null); setShowForm(true); }}
+                  onEdit={(item) => { setEditingItem(item); setShowForm(true); }}
+                  onDelete={handleDelete}
+                  showForm={showForm}
+                  editingItem={editingItem}
+                  onSave={handleSave}
+                  onCancel={() => { setShowForm(false); setEditingItem(null); }}
+                />
+              )}
+
+              {activeTab === 'atendentes' && (
+                <AtendentesTab
+                  data={atendentes}
+                  unidades={unidades}
+                  onAdd={() => { setEditingItem(null); setShowForm(true); }}
+                  onEdit={(item) => { setEditingItem(item); setShowForm(true); }}
+                  onDelete={handleDelete}
+                  showForm={showForm}
+                  editingItem={editingItem}
+                  onSave={handleSave}
+                  onCancel={() => { setShowForm(false); setEditingItem(null); }}
+                />
+              )}
+
+              {activeTab === 'metricas' && (
+                <MetricasTab data={metricas} />
+              )}
+
+              {activeTab === 'import' && (
+                <ImportTab onImport={handleBulkImport} isImporting={isGlobalLoading} />
+              )}
+            </div>
+
+            {isGlobalLoading && (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
                 <span className="ml-2 text-gray-600">Carregando...</span>
               </div>
-            )}
-
-            {!loading && activeTab === 'unidades' && (
-              <UnidadesTab
-                data={unidades}
-                onAdd={() => { setEditingItem(null); setShowForm(true); }}
-                onEdit={(item) => { setEditingItem(item); setShowForm(true); }}
-                onDelete={handleDelete}
-                showForm={showForm}
-                editingItem={editingItem}
-                onSave={handleSave}
-                onCancel={() => { setShowForm(false); setEditingItem(null); }}
-              />
-            )}
-
-            {!loading && activeTab === 'atendentes' && (
-              <AtendentesTab
-                data={atendentes}
-                unidades={unidades}
-                onAdd={() => { setEditingItem(null); setShowForm(true); }}
-                onEdit={(item) => { setEditingItem(item); setShowForm(true); }}
-                onDelete={handleDelete}
-                showForm={showForm}
-                editingItem={editingItem}
-                onSave={handleSave}
-                onCancel={() => { setShowForm(false); setEditingItem(null); }}
-              />
-            )}
-
-            {!loading && activeTab === 'metricas' && (
-              <MetricasTab data={metricas} />
-            )}
-
-            {!loading && activeTab === 'import' && (
-              <ImportTab onImport={handleBulkImport} loading={loading} />
             )}
           </div>
         </div>
@@ -699,7 +701,7 @@ const MetricasTab: React.FC<{ data: any[] }> = ({ data }) => {
 };
 
 // Componente para aba de Importação
-const ImportTab: React.FC<{ onImport: () => void; loading: boolean }> = ({ onImport, loading }) => {
+const ImportTab: React.FC<{ onImport: () => void; isImporting: boolean }> = ({ onImport, isImporting }) => {
   return (
     <div>
       <h2 className="text-xl font-semibold mb-6">Importação de Dados</h2>
@@ -720,11 +722,11 @@ const ImportTab: React.FC<{ onImport: () => void; loading: boolean }> = ({ onImp
         
         <button
           onClick={onImport}
-          disabled={loading}
+          disabled={isImporting}
           className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
         >
-          {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Upload className="w-5 h-5" />}
-          {loading ? 'Importando...' : 'Importar Dados de Exemplo'}
+          {isImporting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Upload className="w-5 h-5" />}
+          {isImporting ? 'Importando...' : 'Importar Dados de Exemplo'}
         </button>
       </div>
 
