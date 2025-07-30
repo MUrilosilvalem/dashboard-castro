@@ -12,7 +12,7 @@ interface User {
 
 export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(false); // Start with false
+  const [loading, setLoading] = useState(true); // Start with true
   const [authLoading, setAuthLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -40,12 +40,25 @@ export const useAuth = () => {
   };
 
   useEffect(() => {
-    // Immediate setup without async operations
-    if (isSupabaseConfigured) {
-      // Try to get user synchronously if possible
-      supabase.auth.getUser().then(({ data: { user } }) => {
+    const initAuth = async () => {
+      try {
+        setLoading(true);
+        
+        if (!isSupabaseConfigured) {
+          setUser({ id: 'anonymous', email: 'anonymous', anonymous: true });
+          return;
+        }
+
+        const { data: { user }, error } = await supabase.auth.getUser();
+        
+        if (error) {
+          console.error('Auth error:', error);
+          setUser(null);
+          return;
+        }
+
         if (user && user.email) {
-          const { isAdmin, isSuperAdmin } = checkAdminStatus(user.email);
+          const { isAdmin, isSuperAdmin } = await checkAdminStatus(user.email);
           setUser({ 
             id: user.id, 
             email: user.email,
@@ -55,13 +68,47 @@ export const useAuth = () => {
         } else {
           setUser(null);
         }
-      }).catch(() => {
+      } catch (error) {
+        console.error('Auth initialization error:', error);
         setUser(null);
-      });
-    } else {
-      // No Supabase - anonymous user
-      setUser({ id: 'anonymous', email: 'anonymous', anonymous: true });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initAuth();
+
+    // Auth state change listener
+    let subscription: any = null;
+    if (isSupabaseConfigured) {
+      const { data } = supabase.auth.onAuthStateChange(
+        async (event, session) => {
+          try {
+            if (session?.user && session.user.email) {
+              const { isAdmin, isSuperAdmin } = await checkAdminStatus(session.user.email);
+              setUser({ 
+                id: session.user.id, 
+                email: session.user.email,
+                isAdmin,
+                isSuperAdmin
+              });
+            } else {
+              setUser(null);
+            }
+          } catch (error) {
+            console.error('Auth state change error:', error);
+            setUser(null);
+          }
+        }
+      );
+      subscription = data.subscription;
     }
+
+    return () => {
+      if (subscription) {
+        subscription.unsubscribe();
+      }
+    };
   }, []);
 
   const login = async (credentials: { email: string; password: string }) => {

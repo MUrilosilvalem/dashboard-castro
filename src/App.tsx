@@ -18,7 +18,7 @@ import { isSupabaseConfigured } from './lib/supabase';
 function App() {
   const {
     user,
-    loading: authLoading,
+    loading: authInitialLoading,
     authLoading: loginLoading,
     error: authError,
     login,
@@ -34,16 +34,6 @@ function App() {
   const [showAdmin, setShowAdmin] = React.useState(false);
   const [showLoginModal, setShowLoginModal] = React.useState(false);
   
-  // Force loading to false after 2 seconds as emergency fix
-  React.useEffect(() => {
-    const timer = setTimeout(() => {
-      if (authLoading) {
-        console.log('Emergency: Forcing auth loading to false');
-      }
-    }, 2000);
-    return () => clearTimeout(timer);
-  }, [authLoading]);
-
   const {
     filteredData,
     previousData,
@@ -53,12 +43,12 @@ function App() {
     kpiData,
     showAtendentesFilter,
     setShowAtendentesFilter,
-    loading,
-    error
+    loading: dashboardLoading,
+    error: dashboardError
   } = useDashboardData();
 
   // Mostrar loading de autenticação
-  if (authLoading && false) { // Temporarily disable loading screen
+  if (authInitialLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -97,7 +87,7 @@ function App() {
     return <AdminPanel />;
   }
 
-  if (loading) {
+  if (dashboardLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -108,13 +98,13 @@ function App() {
     );
   }
 
-  if (error && !error.includes('Missing Supabase')) {
+  if (dashboardError && !dashboardError.includes('Missing Supabase')) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center max-w-md">
           <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
           <h2 className="text-xl font-semibold text-gray-900 mb-2">Erro ao carregar dados</h2>
-          <p className="text-gray-600 mb-4">{error}</p>
+          <p className="text-gray-600 mb-4">{dashboardError}</p>
           <p className="text-sm text-gray-500 mb-4">
             Verifique se o Supabase está configurado corretamente.
           </p>
@@ -130,7 +120,7 @@ function App() {
   }
 
   // Se não há dados ou Supabase não configurado, mostrar tela de setup
-  if (!isAuthenticated || (filteredData.length === 0 && !loading)) {
+  if (!isAuthenticated || (filteredData.length === 0 && !dashboardLoading)) {
     return (
       <div className="min-h-screen bg-gray-50">
         {/* Header */}
