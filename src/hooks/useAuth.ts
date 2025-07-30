@@ -45,6 +45,7 @@ export const useAuth = () => {
         setLoading(true);
         
         if (!isSupabaseConfigured) {
+          console.log('Supabase não configurado - permitindo acesso sem autenticação');
           setUser(null);
           return;
         }
@@ -52,12 +53,13 @@ export const useAuth = () => {
         const { data: { user }, error } = await supabase.auth.getUser();
         
         if (error) {
-          console.log('Nenhuma sessão ativa (normal):', error.message);
+          console.log('Nenhuma sessão ativa:', error.message);
           setUser(null);
           return;
         }
 
         if (user && user.email) {
+          console.log('Usuário autenticado encontrado:', user.email);
           const { isAdmin, isSuperAdmin } = await checkAdminStatus(user.email);
           setUser({ 
             id: user.id, 
@@ -66,12 +68,14 @@ export const useAuth = () => {
             isSuperAdmin
           });
         } else {
+          console.log('Nenhum usuário autenticado');
           setUser(null);
         }
       } catch (error) {
         console.error('Auth initialization error:', error);
         setUser(null);
       } finally {
+        console.log('Auth initialization complete');
         setLoading(false);
       }
     };

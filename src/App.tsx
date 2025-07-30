@@ -49,6 +49,7 @@ function App() {
 
   // Mostrar loading de autenticação
   if (authInitialLoading) {
+    console.log('Mostrando tela de loading de autenticação');
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
