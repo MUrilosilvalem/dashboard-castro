@@ -678,7 +678,7 @@ const ImportTab: React.FC<{ isImporting: boolean; onImport: () => void }> = ({ i
         <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded">
           <p className="text-sm text-yellow-800">
             <strong>💡 Dica:</strong> Para CSV, use a coluna "tipo" para identificar se é 
-            "unidade", "atendente", "metrica_atendente\" ou "metrica_unidade"
+            "unidade", "atendente", "metrica_atendente" ou \"metrica_unidade"
           </p>
         </div>
       </div>
@@ -1395,5 +1395,68 @@ const FaturamentoTab: React.FC<any> = ({
             
             <div className="flex gap-2">
               <button
+                type="submit"
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                <Save className="w-4 h-4" />
+                Salvar
+              </button>
+              <button
+                type="button"
+                onClick={onCancel}
+                className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+              >
+                <X className="w-4 h-4" />
+                Cancelar
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse border border-gray-200">
+          <thead>
+            <tr className="bg-gray-50">
+              <th className="border border-gray-200 px-4 py-2 text-left">Período</th>
+              <th className="border border-gray-200 px-4 py-2 text-left">Unidade</th>
+              <th className="border border-gray-200 px-4 py-2 text-left">Faturamento Total</th>
+              <th className="border border-gray-200 px-4 py-2 text-left">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.map((item: any) => (
+              <tr key={item.id}>
+                <td className="border border-gray-200 px-4 py-2">{item.mes_ano}</td>
+                <td className="border border-gray-200 px-4 py-2">
+                  {item.unidades?.nome || 'N/A'}
+                </td>
+                <td className="border border-gray-200 px-4 py-2">
+                  R$ {item.faturamento_total?.toLocaleString('pt-BR') || '0'}
+                </td>
+                <td className="border border-gray-200 px-4 py-2">
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => onEdit(item)}
+                      className="p-1 text-blue-600 hover:text-blue-800"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => onDelete(item.id)}
+                      className="p-1 text-red-600 hover:text-red-800"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
 
 export default AdminPanel;
