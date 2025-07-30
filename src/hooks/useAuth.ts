@@ -12,7 +12,7 @@ interface User {
 
 export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true); // Start with true
+  const [loading, setLoading] = useState(true);
   const [authLoading, setAuthLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -41,25 +41,23 @@ export const useAuth = () => {
 
   useEffect(() => {
     const initAuth = async () => {
+      console.log('Iniciando verificação de autenticação...');
+      
       try {
-        setLoading(true);
-        
         if (!isSupabaseConfigured) {
-          console.log('Supabase não configurado - permitindo acesso sem autenticação');
+          console.log('Supabase não configurado - finalizando loading');
           setUser(null);
+          setLoading(false);
           return;
         }
 
         const { data: { user }, error } = await supabase.auth.getUser();
         
         if (error) {
-          console.log('Nenhuma sessão ativa:', error.message);
+          console.log('Erro ao verificar usuário:', error.message);
           setUser(null);
-          return;
-        }
-
-        if (user && user.email) {
-          console.log('Usuário autenticado encontrado:', user.email);
+        } else if (user && user.email) {
+          console.log('Usuário encontrado:', user.email);
           const { isAdmin, isSuperAdmin } = await checkAdminStatus(user.email);
           setUser({ 
             id: user.id, 
@@ -72,10 +70,10 @@ export const useAuth = () => {
           setUser(null);
         }
       } catch (error) {
-        console.error('Auth initialization error:', error);
+        console.error('Erro na inicialização:', error);
         setUser(null);
       } finally {
-        console.log('Auth initialization complete');
+        console.log('Finalizando loading de autenticação');
         setLoading(false);
       }
     };
@@ -83,10 +81,10 @@ export const useAuth = () => {
     initAuth();
 
     // Auth state change listener
-    let subscription: any = null;
     if (isSupabaseConfigured) {
       const { data } = supabase.auth.onAuthStateChange(
         async (event, session) => {
+          console.log('Auth state changed:', event);
           try {
             if (session?.user && session.user.email) {
               const { isAdmin, isSuperAdmin } = await checkAdminStatus(session.user.email);
@@ -100,19 +98,16 @@ export const useAuth = () => {
               setUser(null);
             }
           } catch (error) {
-            console.error('Auth state change error:', error);
+            console.error('Erro no auth state change:', error);
             setUser(null);
           }
         }
       );
-      subscription = data.subscription;
-    }
 
-    return () => {
-      if (subscription) {
-        subscription.unsubscribe();
-      }
-    };
+      return () => {
+        data.subscription.unsubscribe();
+      };
+    }
   }, []);
 
   const login = async (credentials: { email: string; password: string }) => {
@@ -191,7 +186,6 @@ export const useAuth = () => {
 
         if (checkError) {
           console.warn('Erro ao verificar aprovação:', checkError);
-          // Em caso de erro, adicionar à lista de pendentes
           isApproved = false;
         } else if (approvedUsers?.approved) {
           isApproved = true;
@@ -199,8 +193,8 @@ export const useAuth = () => {
           isApproved = false;
         }
       } catch (approvalError) {
-        console.warn('Erro ao verificar aprovação, permitindo cadastro:', approvalError);
-        isApproved = false; // Em caso de erro, adicionar à lista de pendentes
+        console.warn('Erro ao verificar aprovação:', approvalError);
+        isApproved = false;
       }
 
       if (!isApproved) {
@@ -215,8 +209,6 @@ export const useAuth = () => {
           
           if (pendingError) {
             console.error('Erro ao adicionar usuário pendente:', pendingError);
-          } else {
-            console.log('Usuário adicionado à lista de pendentes:', credentials.email);
           }
         } catch (pendingError) {
           console.warn('Erro ao adicionar usuário pendente:', pendingError);
@@ -264,7 +256,7 @@ export const useAuth = () => {
       setUser(null);
     } catch (error) {
       console.error('Erro ao sair:', error);
-      setUser(null); // Forçar logout mesmo com erro
+      setUser(null);
     }
   };
 

@@ -48,7 +48,7 @@ function App() {
   } = useDashboardData();
 
   // Mostrar loading de autenticação
-  if (authInitialLoading) {
+  if (authInitialLoading && loading) {
     console.log('Mostrando tela de loading de autenticação');
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -88,7 +88,7 @@ function App() {
     return <AdminPanel onBack={() => setShowAdmin(false)} />;
   }
 
-  if (dashboardLoading) {
+  if (dashboardLoading && !authInitialLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -121,7 +121,7 @@ function App() {
   }
 
   // Se não há dados ou Supabase não configurado, mostrar tela de setup
-  if (!isAuthenticated && !authInitialLoading) {
+  if (!isAuthenticated && !loading) {
     return (
       <div className="min-h-screen bg-gray-50">
         {/* Header */}
@@ -217,7 +217,7 @@ function App() {
   }
 
   // Se não há dados, mostrar tela de configuração
-  if (isAuthenticated && filteredData.length === 0 && !dashboardLoading) {
+  if (isAuthenticated && filteredData.length === 0 && !dashboardLoading && !loading) {
     return (
       <div className="min-h-screen bg-gray-50">
         {/* Header */}
