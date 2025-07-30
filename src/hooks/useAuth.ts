@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { AdminService } from '../services/adminService';
 
 interface User {
   id: string;
   email: string;
   anonymous?: boolean;
+  isAdmin?: boolean;
+  isSuperAdmin?: boolean;
 }
 
 export const useAuth = () => {
@@ -13,13 +16,31 @@ export const useAuth = () => {
   const [authLoading, setAuthLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const checkAdminStatus = async (email: string) => {
+    const [isAdmin, isSuperAdmin] = await Promise.all([
+      AdminService.isUserAdmin(email),
+      AdminService.isUserSuperAdmin(email)
+    ]);
+    return { isAdmin, isSuperAdmin };
+  };
+
   useEffect(() => {
     // Verificar usuário atual
     const checkUser = async () => {
       try {
         if (isSupabaseConfigured) {
           const { data: { user } } = await supabase.auth.getUser();
-          setUser(user ? { id: user.id, email: user.email || '' } : null);
+          if (user && user.email) {
+            const { isAdmin, isSuperAdmin } = await checkAdminStatus(user.email);
+            setUser({ 
+              id: user.id, 
+              email: user.email,
+              isAdmin,
+              isSuperAdmin
+            });
+          } else {
+            setUser(null);
+          }
         } else {
           // Sem Supabase configurado - permitir acesso anônimo
           setUser(null);
@@ -37,9 +58,15 @@ export const useAuth = () => {
     // Escutar mudanças de autenticação
     if (isSupabaseConfigured) {
       const { data: { subscription } } = supabase.auth.onAuthStateChange(
-        (event, session) => {
-          if (session?.user) {
-            setUser({ id: session.user.id, email: session.user.email || '' });
+        async (event, session) => {
+          if (session?.user && session.user.email) {
+            const { isAdmin, isSuperAdmin } = await checkAdminStatus(session.user.email);
+            setUser({ 
+              id: session.user.id, 
+              email: session.user.email,
+              isAdmin,
+              isSuperAdmin
+            });
           } else {
             setUser(null);
           }
@@ -71,7 +98,14 @@ export const useAuth = () => {
       if (error) throw error;
       
       if (data.user) {
-        setUser({ id: data.user.id, email: data.user.email || '' });
+        const email = data.user.email || '';
+        const { isAdmin, isSuperAdmin } = await checkAdminStatus(email);
+        setUser({ 
+          id: data.user.id, 
+          email,
+          isAdmin,
+          isSuperAdmin
+        });
       }
     } catch (error: any) {
       console.error('Erro de login:', error);
@@ -129,7 +163,14 @@ export const useAuth = () => {
       if (error) throw error;
       
       if (data.user) {
-        setUser({ id: data.user.id, email: data.user.email || '' });
+        const email = data.user.email || '';
+        const { isAdmin, isSuperAdmin } = await checkAdminStatus(email);
+        setUser({ 
+          id: data.user.id, 
+          email,
+          isAdmin,
+          isSuperAdmin
+        });
         
         // Marcar como registrado na tabela de aprovados
         await supabase
@@ -174,6 +215,8 @@ export const useAuth = () => {
     logout,
     loginAnonymously,
     isAuthenticated: !!user,
-    isAnonymous: user?.anonymous || false
+    isAnonymous: user?.anonymous || false,
+    isAdmin: user?.isAdmin || false,
+    isSuperAdmin: user?.isSuperAdmin || false
   };
 };
