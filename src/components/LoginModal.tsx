@@ -43,7 +43,6 @@ const LoginModal: React.FC<LoginModalProps> = ({
 
   const handleClose = () => {
     resetForm();
-    setError(null);
     onClose();
   };
 
