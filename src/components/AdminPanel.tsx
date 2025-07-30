@@ -316,8 +316,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
               )}
 
               {activeTab === 'metricas' && (
-                <MetricasTab data={metricas} />
-              )}
+                <MetricasTab
+                  data={metricas}
                   unidades={unidades}
                   atendentes={atendentes}
                   onAdd={() => { setEditingItem(null); setShowForm(true); }}
@@ -341,6 +341,9 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
                   editingItem={editingItem}
                   onSave={handleSave}
                   onCancel={() => { setShowForm(false); setEditingItem(null); }}
+                />
+              )}
+
               {activeTab === 'import' && (
                 <ImportTab onImport={handleBulkImport} isImporting={isGlobalLoading} />
               )}
