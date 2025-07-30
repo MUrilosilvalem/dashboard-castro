@@ -148,7 +148,7 @@ export const useAuth = () => {
 
   const register = async (credentials: { email: string; password: string }) => {
     if (!isSupabaseConfigured) {
-      setError('Cadastro realizado! Aguarde aprovação do administrador.');
+      setError('Supabase não configurado - modo demonstração');
       return;
     }
 
@@ -185,23 +185,35 @@ export const useAuth = () => {
           .eq('email', credentials.email)
           .maybeSingle();
 
-        if (!checkError && approvedUsers?.approved) {
+        if (checkError) {
+          console.warn('Erro ao verificar aprovação:', checkError);
+          // Em caso de erro, adicionar à lista de pendentes
+          isApproved = false;
+        } else if (approvedUsers?.approved) {
           isApproved = true;
+        } else {
+          isApproved = false;
         }
       } catch (approvalError) {
         console.warn('Erro ao verificar aprovação, permitindo cadastro:', approvalError);
-        isApproved = true; // Em caso de erro, permitir cadastro
+        isApproved = false; // Em caso de erro, adicionar à lista de pendentes
       }
 
       if (!isApproved) {
         // Adicionar à lista de usuários pendentes
         try {
-          await supabase
+          const { error: pendingError } = await supabase
             .from('pending_users')
             .upsert({
               email: credentials.email,
               status: 'pending'
             }, { onConflict: 'email' });
+          
+          if (pendingError) {
+            console.error('Erro ao adicionar usuário pendente:', pendingError);
+          } else {
+            console.log('Usuário adicionado à lista de pendentes:', credentials.email);
+          }
         } catch (pendingError) {
           console.warn('Erro ao adicionar usuário pendente:', pendingError);
         }

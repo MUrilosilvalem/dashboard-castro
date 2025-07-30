@@ -11,16 +11,19 @@ const UserApprovalTab: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'pending' | 'approved'>('pending');
 
   useEffect(() => {
+    console.log('UserApprovalTab montado, carregando dados...');
     loadData();
   }, []);
 
   const loadData = async () => {
+    console.log('Carregando dados de aprovação...');
     setLoading(true);
     try {
       const [pending, approved] = await Promise.all([
         UserApprovalService.fetchPendingUsers(),
         UserApprovalService.fetchApprovedUsers()
       ]);
+      console.log('Dados carregados - Pendentes:', pending.length, 'Aprovados:', approved.length);
       setPendingUsers(pending);
       setApprovedUsers(approved);
     } catch (error) {

@@ -5,16 +5,23 @@ export class UserApprovalService {
   static async fetchPendingUsers(): Promise<PendingUser[]> {
     try {
       if (!isSupabaseConfigured) {
+        console.log('Supabase não configurado - retornando lista vazia');
         return [];
       }
 
+      console.log('Buscando usuários pendentes...');
       const { data, error } = await supabase
         .from('pending_users')
         .select('*')
         .eq('status', 'pending')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Erro ao buscar usuários pendentes:', error);
+        throw error;
+      }
+      
+      console.log('Usuários pendentes encontrados:', data?.length || 0);
       return data || [];
     } catch (error) {
       console.error('Erro ao buscar usuários pendentes:', error);
