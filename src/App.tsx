@@ -1,5 +1,6 @@
 import React from 'react';
 import { BarChart3, FileText, Receipt, Stethoscope, Download, AlertCircle, Loader2, Settings, Building2, Users } from 'lucide-react';
+import LoginModal from './components/LoginModal';
 import FilterPanel from './components/FilterPanel';
 import KPICard from './components/KPICard';
 import FaturamentoChart from './components/FaturamentoChart';
@@ -11,10 +12,26 @@ import ExportButton from './components/ExportButton';
 import TopPerformers from './components/TopPerformers';
 import AdminPanel from './components/AdminPanel';
 import { useDashboardData } from './hooks/useDashboardData';
+import { useAuth } from './hooks/useAuth';
 import { isSupabaseConfigured } from './lib/supabase';
 
 function App() {
+  const {
+    user,
+    loading: authLoading,
+    authLoading: loginLoading,
+    error: authError,
+    login,
+    register,
+    logout,
+    loginAnonymously,
+    isAuthenticated,
+    isAnonymous
+  } = useAuth();
+  
   const [showAdmin, setShowAdmin] = React.useState(false);
+  const [showLoginModal, setShowLoginModal] = React.useState(false);
+  
   const {
     filteredData,
     previousData,
@@ -27,6 +44,42 @@ function App() {
     loading,
     error
   } = useDashboardData();
+
+  // Mostrar loading de autenticação
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 text-blue-600 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">Verificando autenticação...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Handlers de autenticação
+  const handleLogin = async (credentials: { email: string; password: string }) => {
+    try {
+      await login(credentials);
+      setShowLoginModal(false);
+    } catch (error) {
+      // Erro já tratado no hook
+    }
+  };
+
+  const handleRegister = async (credentials: { email: string; password: string }) => {
+    try {
+      await register(credentials);
+      setShowLoginModal(false);
+    } catch (error) {
+      // Erro já tratado no hook
+    }
+  };
+
+  const handleAnonymousAccess = () => {
+    loginAnonymously();
+    setShowLoginModal(false);
+  };
 
   if (showAdmin) {
     return <AdminPanel />;
@@ -80,6 +133,45 @@ function App() {
                 </div>
               </div>
               <div className="flex gap-2">
+                {/* Status de autenticação */}
+                {isAuthenticated && !isAnonymous && (
+                  <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-2">
+                    <p className="text-sm text-green-800 font-medium">
+                      👤 {user?.email}
+                    </p>
+                    <button
+                      onClick={logout}
+                      className="text-xs text-green-600 hover:text-green-800"
+                    >
+                      Sair
+                    </button>
+                  </div>
+                )}
+                
+                {isAnonymous && (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg px-4 py-2">
+                    <p className="text-sm text-yellow-800 font-medium">
+                      🔓 Modo Anônimo
+                    </p>
+                    <button
+                      onClick={() => setShowLoginModal(true)}
+                      className="text-xs text-yellow-600 hover:text-yellow-800"
+                    >
+                      Fazer Login
+                    </button>
+                  </div>
+                )}
+                
+                {!isAuthenticated && (
+                  <button
+                    onClick={() => setShowLoginModal(true)}
+                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  >
+                    <Settings className="w-4 h-4" />
+                    Login
+                  </button>
+                )}
+                
                 {!isSupabaseConfigured && (
                   <div className="bg-yellow-50 border border-yellow-200 rounded-lg px-4 py-2">
                     <p className="text-sm text-yellow-800 font-medium">
@@ -165,9 +257,29 @@ function App() {
                 <Settings className="w-5 h-5" />
                 Acessar Painel Administrativo
               </button>
+              
+              {!isAuthenticated && (
+                <button
+                  onClick={() => setShowLoginModal(true)}
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium ml-4"
+                >
+                  <Settings className="w-5 h-5" />
+                  Fazer Login
+                </button>
+              )}
             </div>
           </div>
         </div>
+        
+        {/* Modal de Login */}
+        <LoginModal
+          isOpen={showLoginModal}
+          onClose={handleAnonymousAccess}
+          onLogin={handleLogin}
+          onRegister={handleRegister}
+          loading={loginLoading}
+          error={authError}
+        />
       </div>
     );
   }
@@ -193,6 +305,44 @@ function App() {
                 <Settings className="w-4 h-4" />
                 Admin
               </button>
+              
+              {/* Botão de Login/Status do usuário */}
+              {isAuthenticated && !isAnonymous && (
+                <div className="flex items-center gap-2">
+                  <div className="bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+                    <span className="text-sm text-green-800 font-medium">
+                      👤 {user?.email?.split('@')[0]}
+                    </span>
+                  </div>
+                  <button
+                    onClick={logout}
+                    className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                  >
+                    Sair
+                  </button>
+                </div>
+              )}
+              
+              {isAnonymous && (
+                <button
+                  onClick={() => setShowLoginModal(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                  <Settings className="w-4 h-4" />
+                  Login
+                </button>
+              )}
+              
+              {!isAuthenticated && (
+                <button
+                  onClick={() => setShowLoginModal(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                  <Settings className="w-4 h-4" />
+                  Login
+                </button>
+              )}
+              
               <ExportButton data={filteredData} filters={filters} />
             </div>
           </div>
@@ -265,6 +415,16 @@ function App() {
           <p>Dashboard atualizado em tempo real • Dados agregados da view vw_atendentes_aggregado</p>
         </div>
       </div>
+      
+      {/* Modal de Login */}
+      <LoginModal
+        isOpen={showLoginModal}
+        onClose={handleAnonymousAccess}
+        onLogin={handleLogin}
+        onRegister={handleRegister}
+        loading={loginLoading}
+        error={authError}
+      />
     </div>
   );
 }
