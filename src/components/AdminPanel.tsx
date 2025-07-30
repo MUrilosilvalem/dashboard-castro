@@ -6,7 +6,11 @@ import { AdminService } from '../services/adminService';
 import { useAuth } from '../hooks/useAuth';
 import UserApprovalTab from './UserApprovalTab';
 
-const AdminPanel: React.FC = () => {
+interface AdminPanelProps {
+  onBack: () => void;
+}
+
+const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
   const { user, isAdmin, isSuperAdmin } = useAuth();
   const [activeTab, setActiveTab] = useState<'unidades' | 'atendentes' | 'metricas' | 'bulk' | 'approval' | 'admins'>('unidades');
   const [loading, setLoading] = useState(false);
@@ -1045,7 +1049,7 @@ const AdminPanel: React.FC = () => {
               </div>
             </div>
             <button
-              onClick={() => window.history.back()}
+              onClick={onBack}
               className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
             >
               <ArrowLeft className="w-4 h-4" />

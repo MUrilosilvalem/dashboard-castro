@@ -84,7 +84,7 @@ function App() {
   };
 
   if (showAdmin) {
-    return <AdminPanel />;
+    return <AdminPanel onBack={() => setShowAdmin(false)} />;
   }
 
   if (dashboardLoading) {
