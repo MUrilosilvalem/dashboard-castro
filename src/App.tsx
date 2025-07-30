@@ -64,7 +64,7 @@ function App() {
     );
   }
 
-  // Se não há dados, mostrar mensagem para usar o painel admin
+  // Se não há dados ou Supabase não configurado, mostrar tela de setup
   if (filteredData.length === 0 && !loading) {
     return (
       <div className="min-h-screen bg-gray-50">

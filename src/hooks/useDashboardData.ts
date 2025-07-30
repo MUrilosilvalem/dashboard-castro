@@ -3,7 +3,6 @@ import { AtendentesData, Filters, KPIData } from '../types';
 import { getPreviousPeriods } from '../utils/dataUtils';
 import { DashboardService } from '../services/dashboardService';
 import { isSupabaseConfigured } from '../lib/supabase';
-import { sampleData, getAvailableOptions } from '../data/sampleData';
 
 export const useDashboardData = () => {
   const [rawData, setRawData] = useState<AtendentesData[]>([]);
@@ -38,10 +37,13 @@ export const useDashboardData = () => {
           setRawData(data);
           setAvailableOptions(options);
         } else {
-          // Usar dados de exemplo
-          await new Promise(resolve => setTimeout(resolve, 500));
-          setRawData(sampleData);
-          setAvailableOptions(getAvailableOptions());
+          // Sem Supabase configurado - dados vazios
+          setRawData([]);
+          setAvailableOptions({
+            periodos: [],
+            unidades: [],
+            atendentes: []
+          });
         }
         
         setError(null);
@@ -49,9 +51,13 @@ export const useDashboardData = () => {
         console.error('Erro ao carregar dados:', error);
         setError(error instanceof Error ? error.message : 'Erro desconhecido');
         
-        // Fallback para dados de exemplo em caso de erro
-        setRawData(sampleData);
-        setAvailableOptions(getAvailableOptions());
+        // Em caso de erro, dados vazios
+        setRawData([]);
+        setAvailableOptions({
+          periodos: [],
+          unidades: [],
+          atendentes: []
+        });
       }
       
       setLoading(false);
