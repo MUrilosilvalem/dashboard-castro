@@ -24,7 +24,7 @@ interface AdminPanelProps {
 }
 
 const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
-  const [activeTab, setActiveTab] = useState<'unidades' | 'atendentes' | 'metricas' | 'import'>('unidades');
+  const [activeTab, setActiveTab] = useState<'unidades' | 'atendentes' | 'metricas' | 'faturamento' | 'import'>('unidades');
   const [isGlobalLoading, setIsGlobalLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -32,6 +32,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
   const [unidades, setUnidades] = useState<any[]>([]);
   const [atendentes, setAtendentes] = useState<any[]>([]);
   const [metricas, setMetricas] = useState<any[]>([]);
+  const [metricasUnidades, setMetricasUnidades] = useState<any[]>([]);
 
   // Estados para formulários
   const [editingItem, setEditingItem] = useState<any>(null);
@@ -56,6 +57,10 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
         case 'metricas':
           const metricasData = await DashboardService.fetchMetricasAtendentes();
           setMetricas(metricasData);
+          break;
+        case 'faturamento':
+          const faturamentoData = await DashboardService.fetchMetricasUnidades();
+          setMetricasUnidades(faturamentoData);
           break;
       }
     } catch (error) {
@@ -89,6 +94,22 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
           await DashboardService.insertAtendente(data);
           showMessage('success', 'Atendente criado com sucesso!');
         }
+      } else if (activeTab === 'metricas') {
+        if (editingItem) {
+          await DashboardService.updateMetricaAtendente(editingItem.id, data);
+          showMessage('success', 'Métrica atualizada com sucesso!');
+        } else {
+          await DashboardService.insertMetrica(data);
+          showMessage('success', 'Métrica criada com sucesso!');
+        }
+      } else if (activeTab === 'faturamento') {
+        if (editingItem) {
+          await DashboardService.updateFaturamentoUnidade(editingItem.id, data);
+          showMessage('success', 'Faturamento atualizado com sucesso!');
+        } else {
+          await DashboardService.insertFaturamentoUnidade(data);
+          showMessage('success', 'Faturamento criado com sucesso!');
+        }
       }
       
       setShowForm(false);
@@ -111,6 +132,12 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
       } else if (activeTab === 'atendentes') {
         await DashboardService.deleteAtendente(id);
         showMessage('success', 'Atendente excluído com sucesso!');
+      } else if (activeTab === 'metricas') {
+        await DashboardService.deleteMetricaAtendente(id);
+        showMessage('success', 'Métrica excluída com sucesso!');
+      } else if (activeTab === 'faturamento') {
+        await DashboardService.deleteMetricaUnidade(id);
+        showMessage('success', 'Faturamento excluído com sucesso!');
       }
       
       loadData();
@@ -239,6 +266,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
                 { id: 'unidades', label: 'Unidades', icon: Building2 },
                 { id: 'atendentes', label: 'Atendentes', icon: Users },
                 { id: 'metricas', label: 'Métricas', icon: BarChart3 },
+                { id: 'faturamento', label: 'Faturamento', icon: BarChart3 },
                 { id: 'import', label: 'Importação', icon: Upload }
               ].map(tab => (
                 <button
@@ -290,7 +318,29 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
               {activeTab === 'metricas' && (
                 <MetricasTab data={metricas} />
               )}
+                  unidades={unidades}
+                  atendentes={atendentes}
+                  onAdd={() => { setEditingItem(null); setShowForm(true); }}
+                  onEdit={(item) => { setEditingItem(item); setShowForm(true); }}
+                  onDelete={handleDelete}
+                  showForm={showForm}
+                  editingItem={editingItem}
+                  onSave={handleSave}
+                  onCancel={() => { setShowForm(false); setEditingItem(null); }}
+                />
+              )}
 
+              {activeTab === 'faturamento' && (
+                <FaturamentoTab
+                  data={metricasUnidades}
+                  unidades={unidades}
+                  onAdd={() => { setEditingItem(null); setShowForm(true); }}
+                  onEdit={(item) => { setEditingItem(item); setShowForm(true); }}
+                  onDelete={handleDelete}
+                  showForm={showForm}
+                  editingItem={editingItem}
+                  onSave={handleSave}
+                  onCancel={() => { setShowForm(false); setEditingItem(null); }}
               {activeTab === 'import' && (
                 <ImportTab onImport={handleBulkImport} isImporting={isGlobalLoading} />
               )}
@@ -658,10 +708,210 @@ const AtendentesTab: React.FC<any> = ({
 };
 
 // Componente para aba de Métricas
-const MetricasTab: React.FC<{ data: any[] }> = ({ data }) => {
+const MetricasTab: React.FC<any> = ({ 
+  data, unidades, atendentes, onAdd, onEdit, onDelete, showForm, editingItem, onSave, onCancel 
+}) => {
+  const [formData, setFormData] = useState({
+    mes_ano: '',
+    unidade_id: '',
+    atendente_id: '',
+    valor_orcamentos_registrados: 0,
+    valor_orcamentos_convertidos: 0,
+    qtde_exames_vendidos: 0,
+    qtde_pacientes_atendidos: 0,
+    nps: 0
+  });
+
+  useEffect(() => {
+    if (editingItem) {
+      setFormData({
+        mes_ano: editingItem.mes_ano || '',
+        unidade_id: editingItem.unidade_id || '',
+        atendente_id: editingItem.atendente_id || '',
+        valor_orcamentos_registrados: editingItem.valor_orcamentos_registrados || 0,
+        valor_orcamentos_convertidos: editingItem.valor_orcamentos_convertidos || 0,
+        qtde_exames_vendidos: editingItem.qtde_exames_vendidos || 0,
+        qtde_pacientes_atendidos: editingItem.qtde_pacientes_atendidos || 0,
+        nps: editingItem.nps || 0
+      });
+    } else {
+      setFormData({
+        mes_ano: '',
+        unidade_id: '',
+        atendente_id: '',
+        valor_orcamentos_registrados: 0,
+        valor_orcamentos_convertidos: 0,
+        qtde_exames_vendidos: 0,
+        qtde_pacientes_atendidos: 0,
+        nps: 0
+      });
+    }
+  }, [editingItem, showForm]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSave(formData);
+  };
+
   return (
     <div>
-      <h2 className="text-xl font-semibold mb-6">Métricas de Atendentes</h2>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-xl font-semibold">Métricas de Atendentes</h2>
+        <button
+          onClick={onAdd}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+        >
+          <Plus className="w-4 h-4" />
+          Nova Métrica
+        </button>
+      </div>
+
+      {showForm && (
+        <div className="bg-gray-50 rounded-lg p-6 mb-6">
+          <h3 className="text-lg font-medium mb-4">
+            {editingItem ? 'Editar Métrica' : 'Nova Métrica'}
+          </h3>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Mês/Ano (YYYY-MM)
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="2025-01"
+                  pattern="[0-9]{4}-[0-9]{2}"
+                  value={formData.mes_ano}
+                  onChange={(e) => setFormData({ ...formData, mes_ano: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Unidade
+                </label>
+                <select
+                  required
+                  value={formData.unidade_id}
+                  onChange={(e) => setFormData({ ...formData, unidade_id: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">Selecione uma unidade</option>
+                  {unidades.map((unidade: any) => (
+                    <option key={unidade.id} value={unidade.id}>
+                      {unidade.nome}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Atendente
+                </label>
+                <select
+                  required
+                  value={formData.atendente_id}
+                  onChange={(e) => setFormData({ ...formData, atendente_id: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">Selecione um atendente</option>
+                  {atendentes.map((atendente: any) => (
+                    <option key={atendente.id} value={atendente.id}>
+                      {atendente.nome}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Orçamentos Registrados (R$)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={formData.valor_orcamentos_registrados}
+                  onChange={(e) => setFormData({ ...formData, valor_orcamentos_registrados: parseFloat(e.target.value) || 0 })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Orçamentos Convertidos (R$)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={formData.valor_orcamentos_convertidos}
+                  onChange={(e) => setFormData({ ...formData, valor_orcamentos_convertidos: parseFloat(e.target.value) || 0 })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Quantidade de Exames Vendidos
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  value={formData.qtde_exames_vendidos}
+                  onChange={(e) => setFormData({ ...formData, qtde_exames_vendidos: parseInt(e.target.value) || 0 })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Pacientes Atendidos
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  value={formData.qtde_pacientes_atendidos}
+                  onChange={(e) => setFormData({ ...formData, qtde_pacientes_atendidos: parseInt(e.target.value) || 0 })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  NPS (0-100)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={formData.nps}
+                  onChange={(e) => setFormData({ ...formData, nps: parseInt(e.target.value) || 0 })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+            </div>
+            
+            <div className="flex gap-2">
+              <button
+                type="submit"
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                <Save className="w-4 h-4" />
+                Salvar
+              </button>
+              <button
+                type="button"
+                onClick={onCancel}
+                className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+              >
+                <X className="w-4 h-4" />
+                Cancelar
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
       <div className="overflow-x-auto">
         <table className="w-full border-collapse border border-gray-200">
           <thead>
@@ -672,6 +922,7 @@ const MetricasTab: React.FC<{ data: any[] }> = ({ data }) => {
               <th className="border border-gray-200 px-4 py-2 text-left">Orçamentos</th>
               <th className="border border-gray-200 px-4 py-2 text-left">Conversões</th>
               <th className="border border-gray-200 px-4 py-2 text-left">NPS</th>
+              <th className="border border-gray-200 px-4 py-2 text-left">Ações</th>
             </tr>
           </thead>
           <tbody>
@@ -691,6 +942,187 @@ const MetricasTab: React.FC<{ data: any[] }> = ({ data }) => {
                   R$ {item.valor_orcamentos_convertidos?.toLocaleString('pt-BR') || '0'}
                 </td>
                 <td className="border border-gray-200 px-4 py-2">{item.nps || 0}</td>
+                <td className="border border-gray-200 px-4 py-2">
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => onEdit(item)}
+                      className="p-1 text-blue-600 hover:text-blue-800"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => onDelete(item.id)}
+                      className="p-1 text-red-600 hover:text-red-800"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
+
+// Componente para aba de Faturamento
+const FaturamentoTab: React.FC<any> = ({ 
+  data, unidades, onAdd, onEdit, onDelete, showForm, editingItem, onSave, onCancel 
+}) => {
+  const [formData, setFormData] = useState({
+    mes_ano: '',
+    unidade_id: '',
+    faturamento_total: 0
+  });
+
+  useEffect(() => {
+    if (editingItem) {
+      setFormData({
+        mes_ano: editingItem.mes_ano || '',
+        unidade_id: editingItem.unidade_id || '',
+        faturamento_total: editingItem.faturamento_total || 0
+      });
+    } else {
+      setFormData({
+        mes_ano: '',
+        unidade_id: '',
+        faturamento_total: 0
+      });
+    }
+  }, [editingItem, showForm]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSave(formData);
+  };
+
+  return (
+    <div>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-xl font-semibold">Faturamento por Unidade</h2>
+        <button
+          onClick={onAdd}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+        >
+          <Plus className="w-4 h-4" />
+          Novo Faturamento
+        </button>
+      </div>
+
+      {showForm && (
+        <div className="bg-gray-50 rounded-lg p-6 mb-6">
+          <h3 className="text-lg font-medium mb-4">
+            {editingItem ? 'Editar Faturamento' : 'Novo Faturamento'}
+          </h3>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Mês/Ano (YYYY-MM)
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="2025-01"
+                  pattern="[0-9]{4}-[0-9]{2}"
+                  value={formData.mes_ano}
+                  onChange={(e) => setFormData({ ...formData, mes_ano: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Unidade
+                </label>
+                <select
+                  required
+                  value={formData.unidade_id}
+                  onChange={(e) => setFormData({ ...formData, unidade_id: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">Selecione uma unidade</option>
+                  {unidades.map((unidade: any) => (
+                    <option key={unidade.id} value={unidade.id}>
+                      {unidade.nome}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Faturamento Total (R$)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  required
+                  value={formData.faturamento_total}
+                  onChange={(e) => setFormData({ ...formData, faturamento_total: parseFloat(e.target.value) || 0 })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+            </div>
+            
+            <div className="flex gap-2">
+              <button
+                type="submit"
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                <Save className="w-4 h-4" />
+                Salvar
+              </button>
+              <button
+                type="button"
+                onClick={onCancel}
+                className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+              >
+                <X className="w-4 h-4" />
+                Cancelar
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse border border-gray-200">
+          <thead>
+            <tr className="bg-gray-50">
+              <th className="border border-gray-200 px-4 py-2 text-left">Período</th>
+              <th className="border border-gray-200 px-4 py-2 text-left">Unidade</th>
+              <th className="border border-gray-200 px-4 py-2 text-left">Faturamento Total</th>
+              <th className="border border-gray-200 px-4 py-2 text-left">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.map((item: any) => (
+              <tr key={item.id}>
+                <td className="border border-gray-200 px-4 py-2">{item.mes_ano}</td>
+                <td className="border border-gray-200 px-4 py-2">
+                  {item.unidades?.nome || 'N/A'}
+                </td>
+                <td className="border border-gray-200 px-4 py-2">
+                  R$ {item.faturamento_total?.toLocaleString('pt-BR') || '0'}
+                </td>
+                <td className="border border-gray-200 px-4 py-2">
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => onEdit(item)}
+                      className="p-1 text-blue-600 hover:text-blue-800"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => onDelete(item.id)}
+                      className="p-1 text-red-600 hover:text-red-800"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </td>
               </tr>
             ))}
           </tbody>
