@@ -45,7 +45,7 @@ export const useAuth = () => {
         setLoading(true);
         
         if (!isSupabaseConfigured) {
-          setUser({ id: 'anonymous', email: 'anonymous', anonymous: true });
+          setUser(null);
           return;
         }
 
