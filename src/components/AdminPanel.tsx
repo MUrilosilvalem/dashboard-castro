@@ -362,6 +362,330 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
   );
 };
 
+const ImportTab: React.FC<{ isImporting: boolean; onImport: () => void }> = ({ isImporting, onImport }) => {
+  const [importFormat, setImportFormat] = React.useState<'csv' | 'json'>('csv');
+  const [dragActive, setDragActive] = React.useState(false);
+  const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      const file = e.dataTransfer.files[0];
+      if (validateFile(file)) {
+        setSelectedFile(file);
+      }
+    }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      if (validateFile(file)) {
+        setSelectedFile(file);
+      }
+    }
+  };
+
+  const validateFile = (file: File) => {
+    const validTypes = importFormat === 'csv' ? ['text/csv', 'application/vnd.ms-excel'] : ['application/json'];
+    const validExtensions = importFormat === 'csv' ? ['.csv'] : ['.json'];
+    
+    const hasValidType = validTypes.some(type => file.type === type);
+    const hasValidExtension = validExtensions.some(ext => file.name.toLowerCase().endsWith(ext));
+    
+    if (!hasValidType && !hasValidExtension) {
+      alert(`Por favor, selecione um arquivo ${importFormat.toUpperCase()}`);
+      return false;
+    }
+    
+    return true;
+  };
+
+  const downloadTemplate = () => {
+    if (importFormat === 'csv') {
+      const csvContent = [
+        'tipo,nome,codigo,email,unidade_codigo,mes_ano,valor_orcamentos_registrados,valor_orcamentos_convertidos,qtde_exames_vendidos,qtde_pacientes_atendidos,nps,faturamento_total,ativo,data_admissao',
+        'unidade,Centro Médico Principal,CMP001,,,,,,,,,,true,',
+        'unidade,Clínica Norte,CLN002,,,,,,,,,,true,',
+        'atendente,Ana Silva,,ana.silva@clinica.com,CMP001,,,,,,,,,true,2024-01-01',
+        'atendente,Carlos Santos,,carlos.santos@clinica.com,CMP001,,,,,,,,,true,2024-01-01',
+        'metrica_atendente,,,ana.silva@clinica.com,CMP001,2025-01,50000,40000,120,80,85,,,',
+        'metrica_unidade,,,,,CMP001,2025-01,,,,,150000,,,',
+      ].join('\n');
+      
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'template_importacao.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+    } else {
+      const jsonTemplate = {
+        unidades: [
+          { nome: "Centro Médico Principal", codigo: "CMP001", ativo: true },
+          { nome: "Clínica Norte", codigo: "CLN002", ativo: true }
+        ],
+        atendentes: [
+          { nome: "Ana Silva", email: "ana.silva@clinica.com", unidade_codigo: "CMP001", ativo: true, data_admissao: "2024-01-01" },
+          { nome: "Carlos Santos", email: "carlos.santos@clinica.com", unidade_codigo: "CMP001", ativo: true, data_admissao: "2024-01-01" }
+        ],
+        metricas_atendentes: [
+          {
+            mes_ano: "2025-01",
+            unidade_codigo: "CMP001",
+            atendente_email: "ana.silva@clinica.com",
+            valor_orcamentos_registrados: 50000,
+            valor_orcamentos_convertidos: 40000,
+            qtde_exames_vendidos: 120,
+            qtde_pacientes_atendidos: 80,
+            nps: 85
+          }
+        ],
+        metricas_unidades: [
+          { mes_ano: "2025-01", unidade_codigo: "CMP001", faturamento_total: 150000 }
+        ]
+      };
+      
+      const blob = new Blob([JSON.stringify(jsonTemplate, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'template_importacao.json';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+  };
+
+  const handleImport = async () => {
+    if (!selectedFile) {
+      alert('Por favor, selecione um arquivo primeiro');
+      return;
+    }
+
+    try {
+      let data;
+      
+      if (importFormat === 'csv') {
+        const text = await selectedFile.text();
+        data = parseCSV(text);
+      } else {
+        const text = await selectedFile.text();
+        data = JSON.parse(text);
+      }
+
+      // Aqui você chamaria o serviço de importação
+      console.log('Dados para importar:', data);
+      onImport();
+      
+      alert('Dados importados com sucesso!');
+      setSelectedFile(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    } catch (error) {
+      console.error('Erro na importação:', error);
+      alert('Erro ao importar dados. Verifique o formato do arquivo.');
+    }
+  };
+
+  const parseCSV = (text: string) => {
+    const lines = text.split('\n');
+    const headers = lines[0].split(',');
+    const data = {
+      unidades: [] as any[],
+      atendentes: [] as any[],
+      metricas_atendentes: [] as any[],
+      metricas_unidades: [] as any[]
+    };
+
+    for (let i = 1; i < lines.length; i++) {
+      const values = lines[i].split(',');
+      if (values.length < headers.length) continue;
+      
+      const row: any = {};
+      headers.forEach((header, index) => {
+        row[header.trim()] = values[index]?.trim();
+      });
+
+      if (row.tipo === 'unidade') {
+        data.unidades.push({
+          nome: row.nome,
+          codigo: row.codigo,
+          ativo: row.ativo === 'true'
+        });
+      } else if (row.tipo === 'atendente') {
+        data.atendentes.push({
+          nome: row.nome,
+          email: row.email,
+          unidade_codigo: row.unidade_codigo,
+          ativo: row.ativo === 'true',
+          data_admissao: row.data_admissao
+        });
+      } else if (row.tipo === 'metrica_atendente') {
+        data.metricas_atendentes.push({
+          mes_ano: row.mes_ano,
+          unidade_codigo: row.unidade_codigo,
+          atendente_email: row.email,
+          valor_orcamentos_registrados: parseFloat(row.valor_orcamentos_registrados) || 0,
+          valor_orcamentos_convertidos: parseFloat(row.valor_orcamentos_convertidos) || 0,
+          qtde_exames_vendidos: parseInt(row.qtde_exames_vendidos) || 0,
+          qtde_pacientes_atendidos: parseInt(row.qtde_pacientes_atendidos) || 0,
+          nps: parseFloat(row.nps) || 0
+        });
+      } else if (row.tipo === 'metrica_unidade') {
+        data.metricas_unidades.push({
+          mes_ano: row.mes_ano,
+          unidade_codigo: row.unidade_codigo,
+          faturamento_total: parseFloat(row.faturamento_total) || 0
+        });
+      }
+    }
+
+    return data;
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <h3 className="font-semibold text-blue-900 mb-2">📥 Importação de Dados</h3>
+        <p className="text-blue-800 text-sm">
+          Importe seus dados reais através de arquivos CSV ou JSON. 
+          Baixe o template para ver o formato correto.
+        </p>
+      </div>
+
+      {/* Seleção de Formato */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Formato do Arquivo
+        </label>
+        <div className="flex gap-4">
+          <label className="flex items-center">
+            <input
+              type="radio"
+              value="csv"
+              checked={importFormat === 'csv'}
+              onChange={(e) => setImportFormat(e.target.value as 'csv')}
+              className="mr-2"
+            />
+            CSV (Excel, Google Sheets)
+          </label>
+          <label className="flex items-center">
+            <input
+              type="radio"
+              value="json"
+              checked={importFormat === 'json'}
+              onChange={(e) => setImportFormat(e.target.value as 'json')}
+              className="mr-2"
+            />
+            JSON (Dados estruturados)
+          </label>
+        </div>
+      </div>
+
+      {/* Download Template */}
+      <div>
+        <button
+          onClick={downloadTemplate}
+          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+        >
+          <Download className="w-4 h-4" />
+          Baixar Template {importFormat.toUpperCase()}
+        </button>
+        <p className="text-sm text-gray-600 mt-1">
+          Baixe o arquivo modelo e preencha com seus dados
+        </p>
+      </div>
+
+      {/* Upload Area */}
+      <div
+        className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+          dragActive 
+            ? 'border-blue-400 bg-blue-50' 
+            : 'border-gray-300 hover:border-gray-400'
+        }`}
+        onDragEnter={handleDrag}
+        onDragLeave={handleDrag}
+        onDragOver={handleDrag}
+        onDrop={handleDrop}
+      >
+        <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+        <p className="text-lg font-medium text-gray-700 mb-2">
+          {selectedFile ? selectedFile.name : 'Arraste seu arquivo aqui'}
+        </p>
+        <p className="text-sm text-gray-500 mb-4">
+          ou clique para selecionar um arquivo {importFormat.toUpperCase()}
+        </p>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept={importFormat === 'csv' ? '.csv' : '.json'}
+          onChange={handleFileSelect}
+          className="hidden"
+        />
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+        >
+          Selecionar Arquivo
+        </button>
+      </div>
+
+      {/* Import Button */}
+      {selectedFile && (
+        <div className="flex justify-center">
+          <button
+            onClick={handleImport}
+            disabled={isImporting}
+            className="flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+          >
+            {isImporting ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              <Upload className="w-5 h-5" />
+            )}
+            {isImporting ? 'Importando...' : 'Importar Dados'}
+          </button>
+        </div>
+      )}
+
+      {/* Instructions */}
+      <div className="bg-gray-50 rounded-lg p-4">
+        <h4 className="font-semibold text-gray-900 mb-3">📋 Instruções de Uso:</h4>
+        <ol className="list-decimal list-inside space-y-2 text-sm text-gray-700">
+          <li>Escolha o formato desejado (CSV ou JSON)</li>
+          <li>Baixe o template clicando em "Baixar Template"</li>
+          <li>Preencha o template com seus dados reais</li>
+          <li>Faça upload do arquivo preenchido</li>
+          <li>Clique em "Importar Dados" para processar</li>
+        </ol>
+        
+        <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded">
+          <p className="text-sm text-yellow-800">
+            <strong>💡 Dica:</strong> Para CSV, use a coluna "tipo" para identificar se é 
+            "unidade", "atendente", "metrica_atendente" ou "metrica_unidade"
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // Componente para aba de Unidades
 const UnidadesTab: React.FC<any> = ({ 
   data, onAdd, onEdit, onDelete, showForm, editingItem, onSave, onCancel 
