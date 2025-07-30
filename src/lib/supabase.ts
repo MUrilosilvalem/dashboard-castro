@@ -14,7 +14,13 @@ export const isSupabaseConfigured = !!(
 
 // Criar cliente Supabase real ou mock
 export const supabase = isSupabaseConfigured 
-  ? createClient(supabaseUrl, supabaseAnonKey)
+  ? createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: false
+      }
+    })
   : createMockClient();
 
 // Cliente mock para quando Supabase não está configurado
