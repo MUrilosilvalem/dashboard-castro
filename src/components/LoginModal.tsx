@@ -172,7 +172,7 @@ const LoginModal: React.FC<LoginModalProps> = ({
               className="text-sm text-gray-600 hover:text-gray-800"
               disabled={loading}
             >
-              Continuar sem login
+              Cancelar
             </button>
           </div>
         </div>
