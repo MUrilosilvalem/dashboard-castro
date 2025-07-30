@@ -155,6 +155,8 @@ function App() {
                         {user?.email?.split('@')[0]}
                         {isSuperAdmin && <span className="text-xs">(Super Admin)</span>}
                         {isAdmin && !isSuperAdmin && <span className="text-xs">(Admin)</span>}
+                      </span>
+                    </p>
                     <button
                       onClick={logout}
                       className="text-xs text-green-600 hover:text-green-800"
