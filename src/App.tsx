@@ -1,5 +1,5 @@
 import React from 'react';
-import { BarChart3, FileText, Receipt, Stethoscope, Download, AlertCircle, Loader2, Settings, Building2, Users } from 'lucide-react';
+import { BarChart3, FileText, Receipt, Stethoscope, Download, AlertCircle, Loader2, Settings, Building2, Users, User, Lock } from 'lucide-react';
 import LoginModal from './components/LoginModal';
 import FilterPanel from './components/FilterPanel';
 import KPICard from './components/KPICard';
