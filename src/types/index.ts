@@ -28,3 +28,10 @@ export interface KPIData {
     qtde_exames_vendidos: number;
   };
 }
+
+export interface PendingUser {
+  id: string;
+  email: string;
+  created_at: string;
+  status: 'pending' | 'approved' | 'rejected';
+}
