@@ -49,20 +49,11 @@ export const useAuth = () => {
           return;
         }
 
-        
-        // Primeiro, limpar qualquer sessão inválida
-        try {
-          await supabase.auth.signOut();
-        } catch (signOutError) {
-          console.log('Erro ao limpar sessão (esperado):', signOutError);
-        }
-        
         const { data: { user }, error } = await supabase.auth.getUser();
         
         if (error) {
           console.log('Nenhuma sessão ativa (normal):', error.message);
           setUser(null);
-          return;
           return;
         }
 
