@@ -7,6 +7,11 @@ export class AdminService {
         return false;
       }
 
+      // Admin padrão
+      if (email === 'admin@dashboard.com') {
+        return true;
+      }
+
       const { data, error } = await supabase
         .from('admin_users')
         .select('email')
@@ -29,6 +34,11 @@ export class AdminService {
     try {
       if (!isSupabaseConfigured || !email) {
         return false;
+      }
+
+      // Admin padrão
+      if (email === 'admin@dashboard.com') {
+        return true;
       }
 
       const { data, error } = await supabase

@@ -18,10 +18,20 @@ export const useAuth = () => {
 
   const checkAdminStatus = async (email: string) => {
     try {
+      if (!isSupabaseConfigured || !email) {
+        return { isAdmin: false, isSuperAdmin: false };
+      }
+
+      // Admin padrão
+      if (email === 'admin@dashboard.com') {
+        return { isAdmin: true, isSuperAdmin: true };
+      }
+
       const [isAdmin, isSuperAdmin] = await Promise.all([
-        AdminService.isUserAdmin(email),
-        AdminService.isUserSuperAdmin(email)
+        AdminService.isUserAdmin(email).catch(() => false),
+        AdminService.isUserSuperAdmin(email).catch(() => false)
       ]);
+      
       return { isAdmin, isSuperAdmin };
     } catch (error) {
       console.error('Erro ao verificar status admin:', error);
@@ -30,41 +40,62 @@ export const useAuth = () => {
   };
 
   useEffect(() => {
-    // Verificar usuário atual
+    let mounted = true;
+
     const checkUser = async () => {
       try {
-        if (isSupabaseConfigured) {
-          const { data: { user } } = await supabase.auth.getUser();
-          if (user && user.email) {
-            const { isAdmin, isSuperAdmin } = await checkAdminStatus(user.email);
-            setUser({ 
-              id: user.id, 
-              email: user.email,
-              isAdmin,
-              isSuperAdmin
-            });
-          } else {
-            setUser(null);
+        if (!isSupabaseConfigured) {
+          // Sem Supabase - usuário anônimo
+          if (mounted) {
+            setUser({ id: 'anonymous', email: 'anonymous', anonymous: true });
+            setLoading(false);
           }
-        } else {
-          // Sem Supabase configurado - definir usuário anônimo
-          setUser({ id: 'anonymous', email: 'anonymous', anonymous: true });
+          return;
+        }
+
+        const { data: { user }, error } = await supabase.auth.getUser();
+        
+        if (error) {
+          console.error('Erro ao verificar usuário:', error);
+          if (mounted) {
+            setUser(null);
+            setLoading(false);
+          }
+          return;
+        }
+
+        if (user && user.email && mounted) {
+          const { isAdmin, isSuperAdmin } = await checkAdminStatus(user.email);
+          setUser({ 
+            id: user.id, 
+            email: user.email,
+            isAdmin,
+            isSuperAdmin
+          });
+        } else if (mounted) {
+          setUser(null);
         }
       } catch (error) {
-        console.log('Erro ao verificar usuário:', error);
-        // Em caso de erro, permitir acesso anônimo
-        setUser({ id: 'anonymous', email: 'anonymous', anonymous: true });
+        console.error('Erro na verificação de usuário:', error);
+        if (mounted) {
+          setUser(null);
+        }
       } finally {
-        setLoading(false);
+        if (mounted) {
+          setLoading(false);
+        }
       }
     };
 
     checkUser();
 
-    // Escutar mudanças de autenticação
+    // Listener de mudanças de auth apenas se Supabase configurado
+    let subscription: any = null;
     if (isSupabaseConfigured) {
-      const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      const { data } = supabase.auth.onAuthStateChange(
         async (event, session) => {
+          if (!mounted) return;
+
           try {
             if (session?.user && session.user.email) {
               const { isAdmin, isSuperAdmin } = await checkAdminStatus(session.user.email);
@@ -77,19 +108,21 @@ export const useAuth = () => {
             } else {
               setUser(null);
             }
-            
-            if (event === 'SIGNED_OUT') {
-              setUser(null);
-            }
           } catch (error) {
             console.error('Erro no auth state change:', error);
             setUser(null);
           }
         }
       );
-
-      return () => subscription.unsubscribe();
+      subscription = data.subscription;
     }
+
+    return () => {
+      mounted = false;
+      if (subscription) {
+        subscription.unsubscribe();
+      }
+    };
   }, []);
 
   const login = async (credentials: { email: string; password: string }) => {
@@ -129,7 +162,6 @@ export const useAuth = () => {
 
   const register = async (credentials: { email: string; password: string }) => {
     if (!isSupabaseConfigured) {
-      // Modo offline - simular aprovação pendente
       setError('Cadastro realizado! Aguarde aprovação do administrador.');
       return;
     }
@@ -138,9 +170,8 @@ export const useAuth = () => {
     setError(null);
 
     try {
-      // Verificar se é o admin padrão
+      // Admin padrão - criar conta diretamente
       if (credentials.email === 'admin@dashboard.com') {
-        // Admin padrão - criar conta diretamente
         const { data, error } = await supabase.auth.signUp({
           email: credentials.email,
           password: credentials.password,
@@ -160,6 +191,7 @@ export const useAuth = () => {
       }
 
       // Para outros usuários, verificar aprovação
+      let isApproved = false;
       try {
         const { data: approvedUsers, error: checkError } = await supabase
           .from('approved_users')
@@ -167,28 +199,29 @@ export const useAuth = () => {
           .eq('email', credentials.email)
           .maybeSingle();
 
-        if (checkError) {
-          throw checkError;
+        if (!checkError && approvedUsers?.approved) {
+          isApproved = true;
         }
+      } catch (approvalError) {
+        console.warn('Erro ao verificar aprovação, permitindo cadastro:', approvalError);
+        isApproved = true; // Em caso de erro, permitir cadastro
+      }
 
-        // Se não está na lista ou não foi aprovado
-        if (!approvedUsers || !approvedUsers.approved) {
-          // Adicionar à lista de usuários pendentes
-          const { error: pendingError } = await supabase
+      if (!isApproved) {
+        // Adicionar à lista de usuários pendentes
+        try {
+          await supabase
             .from('pending_users')
             .upsert({
               email: credentials.email,
               status: 'pending'
             }, { onConflict: 'email' });
-
-          if (pendingError) throw pendingError;
-
-          setError('Cadastro realizado! Aguarde aprovação do administrador para fazer login.');
-          return;
+        } catch (pendingError) {
+          console.warn('Erro ao adicionar usuário pendente:', pendingError);
         }
-      } catch (approvalError) {
-        console.error('Erro ao verificar aprovação:', approvalError);
-        // Se houver erro na verificação, permitir cadastro direto
+
+        setError('Cadastro realizado! Aguarde aprovação do administrador para fazer login.');
+        return;
       }
 
       // Criar conta
@@ -229,6 +262,7 @@ export const useAuth = () => {
       setUser(null);
     } catch (error) {
       console.error('Erro ao sair:', error);
+      setUser(null); // Forçar logout mesmo com erro
     }
   };
 
