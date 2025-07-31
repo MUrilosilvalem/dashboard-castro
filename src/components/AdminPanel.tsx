@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Building2, Users, BarChart3, Upload, UserCheck, Settings, Shield } from 'lucide-react';
+import { DashboardService } from '../services/dashboardService';
 import { BulkImportService } from '../services/bulkImportService';
 import { AdminService } from '../services/adminService';
 import BulkImportTab from './BulkImportTab';
