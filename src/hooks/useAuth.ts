@@ -41,20 +41,17 @@ export const useAuth = () => {
 
   useEffect(() => {
     const initAuth = async () => {
-      try {
-        if (!isSupabaseConfigured) {
-          console.log('Supabase não configurado - finalizando loading');
-          setUser(null);
-          return;
-        }
+    // Inicialização simples e direta
+    const initAuth = async () => {
+      if (!isSupabaseConfigured) {
+        setUser(null);
+        setLoading(false);
+        return;
+      }
 
-        const { data: { user }, error } = await supabase.auth.getUser();
-        
-        if (error) {
-          console.log('Erro ao verificar usuário:', error.message);
-          setUser(null);
-        } else if (user && user.email) {
-          console.log('Usuário encontrado:', user.email);
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user?.email) {
           const { isAdmin, isSuperAdmin } = await checkAdminStatus(user.email);
           setUser({ 
             id: user.id, 
@@ -63,15 +60,12 @@ export const useAuth = () => {
             isSuperAdmin
           });
         } else {
-          console.log('Nenhum usuário autenticado');
           setUser(null);
         }
       } catch (error) {
-        console.error('Erro na inicialização:', error);
         setUser(null);
-      } finally {
-        setLoading(false);
       }
+      setLoading(false);
     };
 
     initAuth();
@@ -80,7 +74,9 @@ export const useAuth = () => {
     if (isSupabaseConfigured) {
       const { data } = supabase.auth.onAuthStateChange(
         async (event, session) => {
-          console.log('Auth state changed:', event);
+          // Ignorar eventos de refresh que causam loops
+          if (event === 'TOKEN_REFRESHED') return;
+          
           try {
             if (session?.user && session.user.email) {
               const { isAdmin, isSuperAdmin } = await checkAdminStatus(session.user.email);
@@ -94,7 +90,6 @@ export const useAuth = () => {
               setUser(null);
             }
           } catch (error) {
-            console.error('Erro no auth state change:', error);
             setUser(null);
           }
         }
