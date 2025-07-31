@@ -40,15 +40,22 @@ export const useAuth = () => {
   };
 
   useEffect(() => {
-    const initAuth = async () => {
-      if (!isSupabaseConfigured) {
-        setUser(null);
-        setLoading(false);
-        return;
-      }
+    let mounted = true;
 
+    const initAuth = async () => {
       try {
+        if (!isSupabaseConfigured) {
+          if (mounted) {
+            setUser(null);
+            setLoading(false);
+          }
+          return;
+        }
+
         const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!mounted) return;
+        
         if (user?.email) {
           const { isAdmin, isSuperAdmin } = await checkAdminStatus(user.email);
           setUser({ 
@@ -61,42 +68,23 @@ export const useAuth = () => {
           setUser(null);
         }
       } catch (error) {
-        setUser(null);
+        console.error('Erro na inicialização da auth:', error);
+        if (mounted) {
+          setUser(null);
+        }
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
       }
-      setLoading(false);
     };
 
     initAuth();
 
-    // Auth state change listener apenas se Supabase configurado
-    if (isSupabaseConfigured) {
-      const { data } = supabase.auth.onAuthStateChange(
-        async (event, session) => {
-          // Ignorar eventos de refresh que causam loops
-          if (event === 'TOKEN_REFRESHED') return;
-          
-          try {
-            if (session?.user && session.user.email) {
-              const { isAdmin, isSuperAdmin } = await checkAdminStatus(session.user.email);
-              setUser({ 
-                id: session.user.id, 
-                email: session.user.email,
-                isAdmin,
-                isSuperAdmin
-              });
-            } else {
-              setUser(null);
-            }
-          } catch (error) {
-            setUser(null);
-          }
-        }
-      );
-
-      return () => {
-        data.subscription.unsubscribe();
-      };
-    }
+    // Cleanup function
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   const login = async (credentials: { email: string; password: string }) => {
