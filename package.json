@@ -1,14 +1,18 @@
 {
-  "name": "vite-react-typescript-starter",
+  "name": "dashboard-castro",
   "private": true,
   "version": "0.0.0",
   "type": "module",
-"scripts": {
-  "dev": "vite",
-  "build": "vite build",
-  "preview": "vite preview",
-  "deploy": "gh-pages -d dist"
-}
+  "homepage": "https://MUrilosilvalem.github.io/dashboard-castro",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MUrilosilvalem/dashboard-castro.git"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "deploy": "gh-pages -d dist"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.51.0",
@@ -30,6 +34,7 @@
     "tailwindcss": "^3.4.1",
     "typescript": "^5.5.3",
     "typescript-eslint": "^8.3.0",
-    "vite": "^5.4.2"
+    "vite": "^5.4.2",
+    "gh-pages": "^6.0.0"
   }
 }
