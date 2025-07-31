@@ -49,7 +49,8 @@ export const useDashboardData = () => {
         setError(null);
       } catch (error) {
         console.error('Erro ao carregar dados:', error);
-        setError(error instanceof Error ? error.message : 'Erro desconhecido');
+        const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+        setError(errorMessage);
         
         // Em caso de erro, dados vazios
         setRawData([]);

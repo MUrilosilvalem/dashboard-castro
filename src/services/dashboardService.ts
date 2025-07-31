@@ -33,13 +33,21 @@ export class DashboardService {
 
       if (error) {
         console.error('Erro ao buscar dados:', error);
+        // Se for erro de autenticação e Supabase está configurado, mostrar erro específico
+        if (error.message?.includes('Invalid authentication credentials')) {
+          throw new Error('Credenciais do Supabase inválidas. Verifique as variáveis VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY no arquivo .env');
+        }
         throw new Error(`Erro ao carregar dados: ${error.message}`);
       }
 
       return data || [];
     } catch (error) {
       console.error('Erro no serviço de dashboard:', error);
-      // Retornar array vazio em caso de erro para evitar crash
+      // Se for erro de credenciais, propagar o erro para mostrar mensagem específica
+      if (error instanceof Error && error.message.includes('Credenciais do Supabase inválidas')) {
+        throw error;
+      }
+      // Para outros erros, retornar array vazio para evitar crash
       return [];
     }
   }
@@ -70,7 +78,12 @@ export class DashboardService {
         .select('unidade')
         .order('unidade');
 
-      if (unidadesError) throw unidadesError;
+      if (unidadesError) {
+        if (unidadesError.message?.includes('Invalid authentication credentials')) {
+          throw new Error('Credenciais do Supabase inválidas. Verifique as variáveis VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY no arquivo .env');
+        }
+        throw unidadesError;
+      }
 
       // Buscar atendentes disponíveis
       const { data: atendentesData, error: atendentesError } = await supabase
@@ -78,7 +91,12 @@ export class DashboardService {
         .select('atendente')
         .order('atendente');
 
-      if (atendentesError) throw atendentesError;
+      if (atendentesError) {
+        if (atendentesError.message?.includes('Invalid authentication credentials')) {
+          throw new Error('Credenciais do Supabase inválidas. Verifique as variáveis VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY no arquivo .env');
+        }
+        throw atendentesError;
+      }
 
       return {
         periodos: [...new Set(periodosData?.map(item => item.mes_ano) || [])],
@@ -87,6 +105,11 @@ export class DashboardService {
       };
     } catch (error) {
       console.error('Erro ao buscar opções disponíveis:', error);
+      // Se for erro de credenciais, propagar o erro para mostrar mensagem específica
+      if (error instanceof Error && error.message.includes('Credenciais do Supabase inválidas')) {
+        throw error;
+      }
+      // Para outros erros, retornar opções vazias
       return {
         periodos: [],
         unidades: [],
