@@ -41,13 +41,10 @@ export const useAuth = () => {
 
   useEffect(() => {
     const initAuth = async () => {
-      console.log('Iniciando verificação de autenticação...');
-      
       try {
         if (!isSupabaseConfigured) {
           console.log('Supabase não configurado - finalizando loading');
           setUser(null);
-          setLoading(false);
           return;
         }
 
@@ -73,7 +70,6 @@ export const useAuth = () => {
         console.error('Erro na inicialização:', error);
         setUser(null);
       } finally {
-        console.log('Finalizando loading de autenticação');
         setLoading(false);
       }
     };
@@ -81,8 +77,6 @@ export const useAuth = () => {
     initAuth();
 
     // Auth state change listener apenas se Supabase configurado
-    let subscription: any = null;
-    
     if (isSupabaseConfigured) {
       const { data } = supabase.auth.onAuthStateChange(
         async (event, session) => {
@@ -105,14 +99,11 @@ export const useAuth = () => {
           }
         }
       );
-      subscription = data.subscription;
-    }
 
-    return () => {
-      if (subscription) {
-        subscription.unsubscribe();
-      }
-    };
+      return () => {
+        data.subscription.unsubscribe();
+      };
+    }
   }, []);
 
   const login = async (credentials: { email: string; password: string }) => {
