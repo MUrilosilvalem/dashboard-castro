@@ -41,6 +41,7 @@ export const useAuth = () => {
 
   useEffect(() => {
     const initAuth = async () => {
+    }
     // Inicialização simples e direta
     const initAuth = async () => {
       if (!isSupabaseConfigured) {
