@@ -33,9 +33,7 @@ interface BulkImportResult {
   message: string;
   results: {
     unidades: { success: number; errors: string[] };
-    ['unidades', 'atendentes', 'metricas'].forEach(type => {
-    }
-    )
+    atendentes: { success: number; errors: string[] };
     metricas_atendentes: { success: number; errors: string[] };
     metricas_unidades: { success: number; errors: string[] };
   };
