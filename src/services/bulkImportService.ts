@@ -70,29 +70,29 @@ export class BulkImportService {
   static generateSampleData(): BulkDataRequest {
     return {
       unidades: [
-        { nome: "Centro Médico Principal", codigo: "CMP001", ativo: true },
-        { nome: "Clínica Norte", codigo: "CLN002", ativo: true },
-        { nome: "Unidade Sul", codigo: "UNS003", ativo: true }
+        { nome: "Centro Médico Principal", codigo: "DEMO001", ativo: true },
+        { nome: "Clínica Norte", codigo: "DEMO002", ativo: true },
+        { nome: "Unidade Sul", codigo: "DEMO003", ativo: true }
       ],
       atendentes: [
-        { nome: "Ana Silva", email: "ana.silva@clinica.com", unidade_codigo: "CMP001", ativo: true },
-        { nome: "Carlos Santos", email: "carlos.santos@clinica.com", unidade_codigo: "CMP001", ativo: true },
-        { nome: "Maria Oliveira", email: "maria.oliveira@clinica.com", unidade_codigo: "CLN002", ativo: true },
-        { nome: "João Costa", email: "joao.costa@clinica.com", unidade_codigo: "UNS003", ativo: true }
+        { nome: "Ana Silva Demo", email: "ana.demo@clinica.com", unidade_codigo: "DEMO001", ativo: true },
+        { nome: "Carlos Santos Demo", email: "carlos.demo@clinica.com", unidade_codigo: "DEMO001", ativo: true },
+        { nome: "Maria Oliveira Demo", email: "maria.demo@clinica.com", unidade_codigo: "DEMO002", ativo: true },
+        { nome: "João Costa Demo", email: "joao.demo@clinica.com", unidade_codigo: "DEMO003", ativo: true }
       ],
       metricas_unidades: [
-        { mes_ano: "2025-01", unidade_codigo: "CMP001", faturamento_total: 150000 },
-        { mes_ano: "2025-01", unidade_codigo: "CLN002", faturamento_total: 120000 },
-        { mes_ano: "2025-01", unidade_codigo: "UNS003", faturamento_total: 100000 },
-        { mes_ano: "2024-12", unidade_codigo: "CMP001", faturamento_total: 140000 },
-        { mes_ano: "2024-12", unidade_codigo: "CLN002", faturamento_total: 110000 },
-        { mes_ano: "2024-12", unidade_codigo: "UNS003", faturamento_total: 95000 }
+        { mes_ano: "2025-01", unidade_codigo: "DEMO001", faturamento_total: 150000 },
+        { mes_ano: "2025-01", unidade_codigo: "DEMO002", faturamento_total: 120000 },
+        { mes_ano: "2025-01", unidade_codigo: "DEMO003", faturamento_total: 100000 },
+        { mes_ano: "2024-12", unidade_codigo: "DEMO001", faturamento_total: 140000 },
+        { mes_ano: "2024-12", unidade_codigo: "DEMO002", faturamento_total: 110000 },
+        { mes_ano: "2024-12", unidade_codigo: "DEMO003", faturamento_total: 95000 }
       ],
       metricas_atendentes: [
         {
           mes_ano: "2025-01",
-          unidade_codigo: "CMP001",
-          atendente_email: "ana.silva@clinica.com",
+          unidade_codigo: "DEMO001",
+          atendente_email: "ana.demo@clinica.com",
           valor_orcamentos_registrados: 50000,
           valor_orcamentos_convertidos: 40000,
           qtde_exames_vendidos: 120,
@@ -101,8 +101,8 @@ export class BulkImportService {
         },
         {
           mes_ano: "2025-01",
-          unidade_codigo: "CMP001",
-          atendente_email: "carlos.santos@clinica.com",
+          unidade_codigo: "DEMO001",
+          atendente_email: "carlos.demo@clinica.com",
           valor_orcamentos_registrados: 45000,
           valor_orcamentos_convertidos: 35000,
           qtde_exames_vendidos: 100,
@@ -111,8 +111,8 @@ export class BulkImportService {
         },
         {
           mes_ano: "2025-01",
-          unidade_codigo: "CLN002",
-          atendente_email: "maria.oliveira@clinica.com",
+          unidade_codigo: "DEMO002",
+          atendente_email: "maria.demo@clinica.com",
           valor_orcamentos_registrados: 40000,
           valor_orcamentos_convertidos: 32000,
           qtde_exames_vendidos: 90,
@@ -121,8 +121,8 @@ export class BulkImportService {
         },
         {
           mes_ano: "2025-01",
-          unidade_codigo: "UNS003",
-          atendente_email: "joao.costa@clinica.com",
+          unidade_codigo: "DEMO003",
+          atendente_email: "joao.demo@clinica.com",
           valor_orcamentos_registrados: 35000,
           valor_orcamentos_convertidos: 28000,
           qtde_exames_vendidos: 85,
