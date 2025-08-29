@@ -687,7 +687,7 @@ export default BulkImportTab;
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `modelo_${type}.csv`;
+    a.download = \`modelo_${type}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -723,7 +723,7 @@ export default BulkImportTab;
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <button
             onClick={() => setImportMode('csv')}
-            className={`p-4 border-2 rounded-lg text-left transition-colors ${
+            className={\`p-4 border-2 rounded-lg text-left transition-colors ${
               importMode === 'csv' 
                 ? 'border-blue-500 bg-blue-50' 
                 : 'border-gray-200 hover:border-gray-300'
@@ -736,7 +736,7 @@ export default BulkImportTab;
 
           <button
             onClick={() => setImportMode('json')}
-            className={`p-4 border-2 rounded-lg text-left transition-colors ${
+            className={\`p-4 border-2 rounded-lg text-left transition-colors ${
               importMode === 'json' 
                 ? 'border-blue-500 bg-blue-50' 
                 : 'border-gray-200 hover:border-gray-300'
@@ -749,7 +749,7 @@ export default BulkImportTab;
 
           <button
             onClick={() => setImportMode('demo')}
-            className={`p-4 border-2 rounded-lg text-left transition-colors ${
+            className={\`p-4 border-2 rounded-lg text-left transition-colors ${
               importMode === 'demo' 
                 ? 'border-blue-500 bg-blue-50' 
                 : 'border-gray-200 hover:border-gray-300'
@@ -846,14 +846,14 @@ export default BulkImportTab;
                         accept=".csv"
                         onChange={(e) => handleFileChange(upload.key, e.target.files?.[0] || null)}
                         className="hidden"
-                        id={`csv-${upload.key}`}
+                        id={\`csv-${upload.key}`}
                       />
                       <label
-                        htmlFor={`csv-${upload.key}`}
+                        htmlFor={\`csv-${upload.key}`}
                         className="flex items-center gap-2 px-3 py-2 text-sm border border-gray-300 rounded cursor-pointer hover:bg-gray-50 flex-1"
                       >
                         <Upload className="w-4 h-4" />
-                        {csvFiles[upload.key as keyof typeof csvFiles]?.name || `Selecionar ${upload.label.toLowerCase()}.csv`}
+                        {csvFiles[upload.key as keyof typeof csvFiles]?.name || \`Selecionar ${upload.label.toLowerCase()}.csv`}
                       </label>
                       {csvFiles[upload.key as keyof typeof csvFiles] && (
                         <button
@@ -1040,7 +1040,7 @@ export default BulkImportTab;
                   <div className="bg-red-50 border border-red-200 rounded p-3 max-h-32 overflow-y-auto">
                     {Object.entries(result.results).map(([key, data]: [string, any]) => 
                       data.errors.map((error: string, index: number) => (
-                        <p key={`${key}-${index}`} className="text-sm text-red-700">
+                        <p key={\`${key}-${index}`} className="text-sm text-red-700">
                           • <strong>{key}:</strong> {error}
                         </p>
                       ))
