@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { Upload, Download, FileText, AlertCircle, CheckCircle, Loader2, Plus, Trash2 } from 'lucide-react';
+import { Upload, Download, FileText, AlertCircle, CheckCircle, Loader2, Plus, Trash2, FileSpreadsheet, Database } from 'lucide-react';
 import { BulkImportService } from '../services/bulkImportService';
 
 const BulkImportTab: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
-  const [importMode, setImportMode] = useState<'sample' | 'csv' | 'json'>('sample');
+  const [importMode, setImportMode] = useState<'demo' | 'csv' | 'json'>('csv');
   const [jsonData, setJsonData] = useState('');
   const [csvFiles, setCsvFiles] = useState<{
     unidades?: File;
@@ -15,7 +15,7 @@ const BulkImportTab: React.FC = () => {
     metricas_unidades?: File;
   }>({});
 
-  const handleSampleImport = async () => {
+  const handleDemoImport = async () => {
     setLoading(true);
     setError(null);
     setResult(null);
@@ -55,32 +55,28 @@ const BulkImportTab: React.FC = () => {
 
   const parseCsvToJson = (csvText: string, type: string) => {
     const lines = csvText.trim().split('\n');
-    const headers = lines[0].split(',').map(h => h.trim());
+    const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
     const data = [];
 
     for (let i = 1; i < lines.length; i++) {
-      const values = lines[i].split(',').map(v => v.trim());
+      const line = lines[i].trim();
+      if (!line) continue;
+      
+      const values = line.split(',').map(v => v.trim().replace(/"/g, ''));
       const obj: any = {};
       
       headers.forEach((header, index) => {
         let value = values[index] || '';
         
-        // Remove aspas se existirem
-        if (value.startsWith('"') && value.endsWith('"')) {
-          value = value.slice(1, -1);
-        }
-        
-        // Converter números
+        // Converter tipos baseado no cabeçalho
         if (type === 'metricas_atendentes' || type === 'metricas_unidades') {
           if (['valor_orcamentos_registrados', 'valor_orcamentos_convertidos', 'qtde_exames_vendidos', 'qtde_pacientes_atendidos', 'nps', 'faturamento_total'].includes(header)) {
             obj[header] = parseFloat(value) || 0;
           } else {
             obj[header] = value;
           }
-        } else if (type === 'atendentes' && header === 'ativo') {
-          obj[header] = value.toLowerCase() === 'true' || value === '1';
-        } else if (type === 'unidades' && header === 'ativo') {
-          obj[header] = value.toLowerCase() === 'true' || value === '1';
+        } else if ((type === 'atendentes' || type === 'unidades') && header === 'ativo') {
+          obj[header] = value.toLowerCase() === 'true' || value === '1' || value.toLowerCase() === 'sim';
         } else {
           obj[header] = value;
         }
@@ -130,42 +126,61 @@ const BulkImportTab: React.FC = () => {
   const downloadTemplate = (type: string) => {
     const templates = {
       unidades: `nome,codigo,ativo
-"Unidade Centro","UC001",true
-"Unidade Norte","UN002",true
-"Unidade Sul","US003",true
-"Unidade Leste","UL004",false`,
+"Centro Médico São Paulo","CMSP001",true
+"Clínica Zona Norte","CZN002",true
+"Unidade Zona Sul","UZS003",true
+"Laboratório Centro","LAB004",true
+"Clínica Zona Oeste","CZO005",false`,
       
       atendentes: `nome,email,unidade_codigo,ativo,data_admissao
-"Maria Silva","maria.silva@empresa.com","UC001",true,"2024-01-15"
-"João Santos","joao.santos@empresa.com","UC001",true,"2024-02-01"
-"Ana Costa","ana.costa@empresa.com","UN002",true,"2024-01-20"
-"Pedro Lima","pedro.lima@empresa.com","US003",true,"2024-03-10"
-"Carla Oliveira","carla.oliveira@empresa.com","UN002",false,"2024-01-05"`,
+"Maria Silva Santos","maria.santos@empresa.com","CMSP001",true,"2024-01-15"
+"João Pedro Oliveira","joao.oliveira@empresa.com","CMSP001",true,"2024-02-01"
+"Ana Carolina Lima","ana.lima@empresa.com","CZN002",true,"2024-01-20"
+"Carlos Eduardo Costa","carlos.costa@empresa.com","UZS003",true,"2024-03-10"
+"Patricia Fernanda Souza","patricia.souza@empresa.com","CZN002",true,"2024-01-05"
+"Roberto Silva Junior","roberto.junior@empresa.com","LAB004",true,"2024-02-15"
+"Fernanda Alves Pereira","fernanda.pereira@empresa.com","UZS003",false,"2024-01-10"`,
       
       metricas_atendentes: `mes_ano,unidade_codigo,atendente_email,valor_orcamentos_registrados,valor_orcamentos_convertidos,qtde_exames_vendidos,qtde_pacientes_atendidos,nps
-"2025-01","UC001","maria.silva@empresa.com",75000,60000,150,100,88
-"2025-01","UC001","joao.santos@empresa.com",65000,50000,130,85,82
-"2025-01","UN002","ana.costa@empresa.com",55000,45000,110,75,85
-"2025-01","US003","pedro.lima@empresa.com",45000,35000,90,60,78
-"2024-12","UC001","maria.silva@empresa.com",70000,55000,140,95,86
-"2024-12","UC001","joao.santos@empresa.com",60000,48000,125,80,80
-"2024-12","UN002","ana.costa@empresa.com",50000,40000,105,70,83
-"2024-12","US003","pedro.lima@empresa.com",42000,33000,85,55,76`,
+"2025-01","CMSP001","maria.santos@empresa.com",85000,68000,180,120,92
+"2025-01","CMSP001","joao.oliveira@empresa.com",75000,60000,150,100,88
+"2025-01","CZN002","ana.lima@empresa.com",65000,52000,130,90,85
+"2025-01","UZS003","carlos.costa@empresa.com",55000,44000,110,75,82
+"2025-01","CZN002","patricia.souza@empresa.com",70000,56000,140,95,87
+"2025-01","LAB004","roberto.junior@empresa.com",60000,48000,120,80,83
+"2024-12","CMSP001","maria.santos@empresa.com",80000,64000,170,115,90
+"2024-12","CMSP001","joao.oliveira@empresa.com",70000,56000,140,95,86
+"2024-12","CZN002","ana.lima@empresa.com",60000,48000,125,85,83
+"2024-12","UZS003","carlos.costa@empresa.com",50000,40000,100,70,80
+"2024-12","CZN002","patricia.souza@empresa.com",65000,52000,130,90,85
+"2024-12","LAB004","roberto.junior@empresa.com",55000,44000,110,75,81
+"2024-11","CMSP001","maria.santos@empresa.com",75000,60000,160,110,88
+"2024-11","CMSP001","joao.oliveira@empresa.com",65000,52000,135,90,84
+"2024-11","CZN002","ana.lima@empresa.com",55000,44000,120,80,81
+"2024-11","UZS003","carlos.costa@empresa.com",45000,36000,95,65,78
+"2024-11","CZN002","patricia.souza@empresa.com",60000,48000,125,85,83
+"2024-11","LAB004","roberto.junior@empresa.com",50000,40000,105,70,79`,
       
       metricas_unidades: `mes_ano,unidade_codigo,faturamento_total
-"2025-01","UC001",180000
-"2025-01","UN002",140000
-"2025-01","US003",120000
-"2024-12","UC001",170000
-"2024-12","UN002",135000
-"2024-12","US003",115000
-"2024-11","UC001",165000
-"2024-11","UN002",130000
-"2024-11","US003",110000`
+"2025-01","CMSP001",220000
+"2025-01","CZN002",185000
+"2025-01","UZS003",155000
+"2025-01","LAB004",140000
+"2025-01","CZO005",0
+"2024-12","CMSP001",210000
+"2024-12","CZN002",175000
+"2024-12","UZS003",145000
+"2024-12","LAB004",130000
+"2024-12","CZO005",0
+"2024-11","CMSP001",200000
+"2024-11","CZN002",165000
+"2024-11","UZS003",135000
+"2024-11","LAB004",120000
+"2024-11","CZO005",0`
     };
 
     const content = templates[type as keyof typeof templates];
-    const blob = new Blob([content], { type: 'text/csv' });
+    const blob = new Blob([content], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -181,35 +196,28 @@ const BulkImportTab: React.FC = () => {
     }));
   };
 
+  const downloadAllTemplates = () => {
+    ['unidades', 'atendentes', 'metricas_atendentes', 'metricas_unidades'].forEach(type => {
+      setTimeout(() => downloadTemplate(type), 100);
+    });
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <Upload className="w-6 h-6 text-blue-600" />
+        <Database className="w-6 h-6 text-blue-600" />
         <div>
           <h2 className="text-xl font-semibold text-gray-900">Importação de Dados Reais</h2>
-          <p className="text-sm text-gray-600">Importe dados reais através de arquivos CSV ou JSON estruturados</p>
+          <p className="text-sm text-gray-600">Importe seus dados reais através de arquivos CSV estruturados ou JSON</p>
         </div>
       </div>
 
       {/* Mode Selection */}
       <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">Selecione o Formato dos Dados</h3>
+        <h3 className="text-lg font-medium text-gray-900 mb-4">Selecione o Método de Importação</h3>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <button
-            onClick={() => setImportMode('sample')}
-            className={`p-4 border-2 rounded-lg text-left transition-colors ${
-              importMode === 'sample' 
-                ? 'border-blue-500 bg-blue-50' 
-                : 'border-gray-200 hover:border-gray-300'
-            }`}
-          >
-            <FileText className="w-6 h-6 text-blue-600 mb-2" />
-            <h4 className="font-medium text-gray-900">Dados de Demonstração</h4>
-            <p className="text-sm text-gray-600">Importar dados fictícios para testar o sistema</p>
-          </button>
-
           <button
             onClick={() => setImportMode('csv')}
             className={`p-4 border-2 rounded-lg text-left transition-colors ${
@@ -218,9 +226,9 @@ const BulkImportTab: React.FC = () => {
                 : 'border-gray-200 hover:border-gray-300'
             }`}
           >
-            <Upload className="w-6 h-6 text-green-600 mb-2" />
+            <FileSpreadsheet className="w-6 h-6 text-green-600 mb-2" />
             <h4 className="font-medium text-gray-900">Arquivos CSV</h4>
-            <p className="text-sm text-gray-600">Importar dados estruturados em formato CSV</p>
+            <p className="text-sm text-gray-600">Importe dados estruturados em formato CSV (Recomendado)</p>
           </button>
 
           <button
@@ -233,104 +241,151 @@ const BulkImportTab: React.FC = () => {
           >
             <FileText className="w-6 h-6 text-purple-600 mb-2" />
             <h4 className="font-medium text-gray-900">Dados JSON</h4>
-            <p className="text-sm text-gray-600">Importar dados estruturados em formato JSON</p>
+            <p className="text-sm text-gray-600">Importe dados estruturados em formato JSON</p>
+          </button>
+
+          <button
+            onClick={() => setImportMode('demo')}
+            className={`p-4 border-2 rounded-lg text-left transition-colors ${
+              importMode === 'demo' 
+                ? 'border-blue-500 bg-blue-50' 
+                : 'border-gray-200 hover:border-gray-300'
+            }`}
+          >
+            <Database className="w-6 h-6 text-orange-600 mb-2" />
+            <h4 className="font-medium text-gray-900">Dados de Demonstração</h4>
+            <p className="text-sm text-gray-600">Importar dados fictícios para testar o sistema</p>
           </button>
         </div>
 
-        {/* Sample Data Import */}
-        {importMode === 'sample' && (
-          <div className="space-y-4">
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h4 className="font-medium text-blue-900 mb-2">⚠️ Dados de Demonstração Incluem:</h4>
-              <ul className="text-sm text-blue-800 space-y-1">
-                <li>• 3 Unidades (Centro Médico Principal, Clínica Norte, Unidade Sul)</li>
-                <li>• 4 Atendentes distribuídos pelas unidades</li>
-                <li>• Métricas fictícias de performance dos últimos meses</li>
-                <li>• Dados de faturamento por unidade</li>
-                <li>• <strong>ATENÇÃO:</strong> Estes são dados fictícios para demonstração</li>
-              </ul>
-            </div>
-            
-            <button
-              onClick={handleSampleImport}
-              disabled={loading}
-              className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-            >
-              {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Download className="w-5 h-5" />}
-              {loading ? 'Importando...' : 'Importar Dados de Demonstração'}
-            </button>
-          </div>
-        )}
-
-        {/* CSV Import */}
+        {/* CSV Import - Método Principal */}
         {importMode === 'csv' && (
           <div className="space-y-6">
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-              <h4 className="font-medium text-yellow-900 mb-2">📋 Formato dos Arquivos CSV:</h4>
-              <ul className="text-sm text-yellow-800 space-y-1">
-                <li>• <strong>Obrigatório:</strong> Baixe os modelos abaixo para ver o formato exato</li>
-                <li>• Use vírgula (,) como separador</li>
-                <li>• Primeira linha deve conter os cabeçalhos exatos</li>
-                <li>• Datas no formato YYYY-MM-DD</li>
-                <li>• Valores booleanos: true/false</li>
-                <li>• Não altere os nomes das colunas dos templates</li>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <h4 className="font-medium text-blue-900 mb-2">📊 Importação de Dados Reais via CSV</h4>
+              <ul className="text-sm text-blue-800 space-y-1">
+                <li>• <strong>Formato obrigatório:</strong> Use exatamente os modelos fornecidos</li>
+                <li>• <strong>Codificação:</strong> UTF-8 com vírgula (,) como separador</li>
+                <li>• <strong>Cabeçalhos:</strong> Primeira linha deve conter os nomes exatos das colunas</li>
+                <li>• <strong>Datas:</strong> Formato YYYY-MM-DD (ex: 2025-01-15)</li>
+                <li>• <strong>Períodos:</strong> Formato YYYY-MM (ex: 2025-01)</li>
+                <li>• <strong>Valores:</strong> Use ponto (.) para decimais, sem símbolos de moeda</li>
+                <li>• <strong>Booleanos:</strong> true/false ou 1/0</li>
               </ul>
             </div>
 
-            {/* Templates */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-3">
-                <h4 className="font-medium text-gray-900">📥 Baixar Modelos CSV:</h4>
-                {['unidades', 'atendentes', 'metricas_atendentes', 'metricas_unidades'].map(type => (
-                  <button
-                    key={type}
-                    onClick={() => downloadTemplate(type)}
-                    className="flex items-center gap-2 px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg w-full text-left"
-                  >
-                    <Download className="w-4 h-4" />
-                    Modelo {type.replace('_', ' ').replace('metricas', 'métricas')}
-                  </button>
+            {/* Download All Templates */}
+            <div className="text-center">
+              <button
+                onClick={downloadAllTemplates}
+                className="inline-flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium"
+              >
+                <Download className="w-5 h-5" />
+                Baixar Todos os Modelos CSV
+              </button>
+              <p className="text-sm text-gray-600 mt-2">
+                Baixa os 4 arquivos modelo de uma vez
+              </p>
+            </div>
+
+            {/* Individual Templates and Upload */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <h4 className="font-medium text-gray-900 flex items-center gap-2">
+                  <Download className="w-4 h-4" />
+                  Modelos CSV Individuais:
+                </h4>
+                {[
+                  { key: 'unidades', label: 'Unidades', desc: 'Cadastro das unidades de atendimento' },
+                  { key: 'atendentes', label: 'Atendentes', desc: 'Cadastro dos atendentes por unidade' },
+                  { key: 'metricas_atendentes', label: 'Métricas de Atendentes', desc: 'Performance mensal dos atendentes' },
+                  { key: 'metricas_unidades', label: 'Métricas de Unidades', desc: 'Faturamento mensal por unidade' }
+                ].map(template => (
+                  <div key={template.key} className="border border-gray-200 rounded-lg p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <div>
+                        <h5 className="font-medium text-gray-900">{template.label}</h5>
+                        <p className="text-xs text-gray-600">{template.desc}</p>
+                      </div>
+                      <button
+                        onClick={() => downloadTemplate(template.key)}
+                        className="flex items-center gap-1 px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded"
+                      >
+                        <Download className="w-3 h-3" />
+                        Baixar
+                      </button>
+                    </div>
+                  </div>
                 ))}
               </div>
 
-              <div className="space-y-3">
-                <h4 className="font-medium text-gray-900">📤 Enviar Seus Arquivos:</h4>
-                {['unidades', 'atendentes', 'metricas_atendentes', 'metricas_unidades'].map(type => (
-                  <div key={type} className="flex items-center gap-2">
-                    <input
-                      type="file"
-                      accept=".csv"
-                      onChange={(e) => handleFileChange(type, e.target.files?.[0] || null)}
-                      className="hidden"
-                      id={`csv-${type}`}
-                    />
-                    <label
-                      htmlFor={`csv-${type}`}
-                      className="flex items-center gap-2 px-3 py-2 text-sm border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 flex-1"
-                    >
-                      <Upload className="w-4 h-4" />
-                      {csvFiles[type as keyof typeof csvFiles]?.name || `Selecionar ${type.replace('_', ' ').replace('metricas', 'métricas')}.csv`}
-                    </label>
-                    {csvFiles[type as keyof typeof csvFiles] && (
-                      <button
-                        onClick={() => handleFileChange(type, null)}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded"
+              <div className="space-y-4">
+                <h4 className="font-medium text-gray-900 flex items-center gap-2">
+                  <Upload className="w-4 h-4" />
+                  Enviar Seus Arquivos:
+                </h4>
+                {[
+                  { key: 'unidades', label: 'Unidades', required: true },
+                  { key: 'atendentes', label: 'Atendentes', required: true },
+                  { key: 'metricas_atendentes', label: 'Métricas de Atendentes', required: false },
+                  { key: 'metricas_unidades', label: 'Métricas de Unidades', required: false }
+                ].map(upload => (
+                  <div key={upload.key} className="border border-gray-200 rounded-lg p-3">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-sm font-medium text-gray-900">{upload.label}</span>
+                      {upload.required && (
+                        <span className="text-xs bg-red-100 text-red-800 px-2 py-0.5 rounded">Obrigatório</span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="file"
+                        accept=".csv"
+                        onChange={(e) => handleFileChange(upload.key, e.target.files?.[0] || null)}
+                        className="hidden"
+                        id={`csv-${upload.key}`}
+                      />
+                      <label
+                        htmlFor={`csv-${upload.key}`}
+                        className="flex items-center gap-2 px-3 py-2 text-sm border border-gray-300 rounded cursor-pointer hover:bg-gray-50 flex-1"
                       >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    )}
+                        <Upload className="w-4 h-4" />
+                        {csvFiles[upload.key as keyof typeof csvFiles]?.name || `Selecionar ${upload.label.toLowerCase()}.csv`}
+                      </label>
+                      {csvFiles[upload.key as keyof typeof csvFiles] && (
+                        <button
+                          onClick={() => handleFileChange(upload.key, null)}
+                          className="p-2 text-red-600 hover:bg-red-50 rounded"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
             </div>
 
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <h4 className="font-medium text-yellow-900 mb-2">⚠️ Ordem de Importação Recomendada:</h4>
+              <ol className="text-sm text-yellow-800 space-y-1 list-decimal list-inside">
+                <li><strong>Unidades</strong> - Cadastre primeiro as unidades</li>
+                <li><strong>Atendentes</strong> - Depois os atendentes vinculados às unidades</li>
+                <li><strong>Métricas de Unidades</strong> - Faturamento mensal das unidades</li>
+                <li><strong>Métricas de Atendentes</strong> - Performance individual dos atendentes</li>
+              </ol>
+              <p className="text-xs text-yellow-700 mt-2">
+                Você pode importar todos de uma vez ou separadamente seguindo esta ordem.
+              </p>
+            </div>
+
             <button
               onClick={handleCsvImport}
               disabled={loading || Object.values(csvFiles).filter(Boolean).length === 0}
-              className="flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+              className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium"
             >
               {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Upload className="w-5 h-5" />}
-              {loading ? 'Importando...' : 'Importar Arquivos CSV'}
+              {loading ? 'Importando Dados Reais...' : 'Importar Dados Reais'}
             </button>
           </div>
         )}
@@ -339,21 +394,44 @@ const BulkImportTab: React.FC = () => {
         {importMode === 'json' && (
           <div className="space-y-4">
             <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-              <h4 className="font-medium text-purple-900 mb-2">📝 Estrutura JSON Obrigatória:</h4>
-              <p className="text-sm text-purple-800 mb-2">Use exatamente esta estrutura para seus dados reais:</p>
-              <pre className="text-xs text-purple-700 bg-purple-100 p-2 rounded overflow-x-auto">
+              <h4 className="font-medium text-purple-900 mb-2">📝 Estrutura JSON para Dados Reais:</h4>
+              <p className="text-sm text-purple-800 mb-2">Use esta estrutura exata para seus dados reais:</p>
+              <pre className="text-xs text-purple-700 bg-purple-100 p-3 rounded overflow-x-auto">
 {`{
   "unidades": [
-    {"nome": "Nome da Sua Unidade Real", "codigo": "CODIGO_UNICO", "ativo": true}
+    {
+      "nome": "Centro Médico São Paulo",
+      "codigo": "CMSP001",
+      "ativo": true
+    }
   ],
   "atendentes": [
-    {"nome": "Nome Real do Atendente", "email": "email@real.com", "unidade_codigo": "CODIGO_UNICO", "ativo": true, "data_admissao": "2024-01-15"}
+    {
+      "nome": "Maria Silva Santos",
+      "email": "maria.santos@empresa.com",
+      "unidade_codigo": "CMSP001",
+      "ativo": true,
+      "data_admissao": "2024-01-15"
+    }
   ],
   "metricas_atendentes": [
-    {"mes_ano": "2025-01", "unidade_codigo": "CODIGO_UNICO", "atendente_email": "email@real.com", "valor_orcamentos_registrados": 50000, "valor_orcamentos_convertidos": 40000, "qtde_exames_vendidos": 120, "qtde_pacientes_atendidos": 80, "nps": 85}
+    {
+      "mes_ano": "2025-01",
+      "unidade_codigo": "CMSP001",
+      "atendente_email": "maria.santos@empresa.com",
+      "valor_orcamentos_registrados": 85000,
+      "valor_orcamentos_convertidos": 68000,
+      "qtde_exames_vendidos": 180,
+      "qtde_pacientes_atendidos": 120,
+      "nps": 92
+    }
   ],
   "metricas_unidades": [
-    {"mes_ano": "2025-01", "unidade_codigo": "CODIGO_UNICO", "faturamento_total": 150000}
+    {
+      "mes_ano": "2025-01",
+      "unidade_codigo": "CMSP001",
+      "faturamento_total": 220000
+    }
   ]
 }`}
               </pre>
@@ -361,23 +439,55 @@ const BulkImportTab: React.FC = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Seus Dados JSON:
+                Cole Seus Dados JSON Reais:
               </label>
               <textarea
                 value={jsonData}
                 onChange={(e) => setJsonData(e.target.value)}
                 className="w-full h-64 p-3 border border-gray-300 rounded-lg font-mono text-sm"
-                placeholder="Cole seus dados JSON aqui..."
+                placeholder="Cole seus dados JSON reais aqui..."
               />
             </div>
 
             <button
               onClick={handleJsonImport}
               disabled={loading || !jsonData.trim()}
-              className="flex items-center gap-2 px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
+              className="flex items-center gap-2 px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 font-medium"
             >
               {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Plus className="w-5 h-5" />}
-              {loading ? 'Importando...' : 'Importar Seus Dados JSON'}
+              {loading ? 'Importando Dados Reais...' : 'Importar Dados JSON'}
+            </button>
+          </div>
+        )}
+
+        {/* Demo Data Import */}
+        {importMode === 'demo' && (
+          <div className="space-y-4">
+            <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+              <h4 className="font-medium text-orange-900 mb-2">🧪 Dados de Demonstração</h4>
+              <p className="text-sm text-orange-800 mb-2">
+                Esta opção importa dados fictícios apenas para testar o funcionamento do sistema.
+              </p>
+              <ul className="text-sm text-orange-800 space-y-1">
+                <li>• 3 Unidades fictícias</li>
+                <li>• 4 Atendentes de exemplo</li>
+                <li>• Métricas simuladas dos últimos meses</li>
+                <li>• Dados de faturamento por unidade</li>
+              </ul>
+              <div className="bg-orange-100 border border-orange-300 rounded p-2 mt-3">
+                <p className="text-xs text-orange-900 font-medium">
+                  ⚠️ ATENÇÃO: Use apenas para testes. Para dados reais, use CSV ou JSON.
+                </p>
+              </div>
+            </div>
+            
+            <button
+              onClick={handleDemoImport}
+              disabled={loading}
+              className="flex items-center gap-2 px-6 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 font-medium"
+            >
+              {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Database className="w-5 h-5" />}
+              {loading ? 'Importando Demonstração...' : 'Importar Dados de Demonstração'}
             </button>
           </div>
         )}
@@ -407,7 +517,7 @@ const BulkImportTab: React.FC = () => {
                 {Object.entries(result.results).map(([key, data]: [string, any]) => (
                   <div key={key} className="bg-white rounded-lg p-3 border border-green-200">
                     <h5 className="font-medium text-gray-900 capitalize mb-1">
-                      {key.replace('_', ' ')}
+                      {key.replace('_', ' ').replace('metricas', 'métricas')}
                     </h5>
                     <p className="text-sm text-green-700">
                       📊 {data.success} registros processados
@@ -424,15 +534,23 @@ const BulkImportTab: React.FC = () => {
               {Object.values(result.results).some((data: any) => data.errors.length > 0) && (
                 <div className="mt-4">
                   <h5 className="font-medium text-red-900 mb-2">⚠️ Problemas Encontrados:</h5>
-                  {Object.entries(result.results).map(([key, data]: [string, any]) => 
-                    data.errors.map((error: string, index: number) => (
-                      <p key={`${key}-${index}`} className="text-sm text-red-700">
-                        • {key}: {error}
-                      </p>
-                    ))
-                  )}
+                  <div className="bg-red-50 border border-red-200 rounded p-3 max-h-32 overflow-y-auto">
+                    {Object.entries(result.results).map(([key, data]: [string, any]) => 
+                      data.errors.map((error: string, index: number) => (
+                        <p key={`${key}-${index}`} className="text-sm text-red-700">
+                          • <strong>{key}:</strong> {error}
+                        </p>
+                      ))
+                    )}
+                  </div>
                 </div>
               )}
+
+              <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded">
+                <p className="text-sm text-blue-800">
+                  🎉 <strong>Próximo passo:</strong> Volte ao dashboard principal para visualizar seus dados importados!
+                </p>
+              </div>
             </div>
           </div>
         </div>
