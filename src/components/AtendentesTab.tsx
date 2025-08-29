@@ -336,21 +336,6 @@ const AtendentesTab: React.FC = () => {
     </div>
   );
 
-  async function handleDelete(id: string) {
-    if (!confirm('Tem certeza que deseja excluir este atendente?')) return;
-
-    setActionLoading(id);
-    try {
-      await DashboardService.deleteAtendente(id);
-      setMessage({ type: 'success', text: 'Atendente excluído com sucesso!' });
-      await loadData();
-    } catch (error) {
-      console.error('Erro ao excluir atendente:', error);
-      setMessage({ type: 'error', text: 'Erro ao excluir atendente' });
-    } finally {
-      setActionLoading(null);
-    }
-  }
 };
 
 export default AtendentesTab;
