@@ -105,9 +105,22 @@ function App() {
           <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
           <h2 className="text-xl font-semibold text-gray-900 mb-2">Erro ao carregar dados</h2>
           <p className="text-gray-600 mb-4">{dashboardError}</p>
-          <p className="text-sm text-gray-500 mb-4">
-            Verifique se o Supabase está configurado corretamente.
-          </p>
+          {dashboardError.includes('Credenciais do Supabase inválidas') && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4 text-left">
+              <h3 className="font-medium text-yellow-900 mb-2">Como corrigir:</h3>
+              <ol className="text-sm text-yellow-800 space-y-1 list-decimal list-inside">
+                <li>Crie um arquivo <code className="bg-yellow-100 px-1 rounded">.env</code> na raiz do projeto</li>
+                <li>Adicione suas credenciais do Supabase:</li>
+              </ol>
+              <pre className="text-xs bg-yellow-100 p-2 rounded mt-2 overflow-x-auto">
+{`VITE_SUPABASE_URL=https://seu-projeto.supabase.co
+VITE_SUPABASE_ANON_KEY=sua-chave-anon-aqui`}
+              </pre>
+              <p className="text-xs text-yellow-700 mt-2">
+                Encontre essas informações em: Supabase Dashboard → Settings → API
+              </p>
+            </div>
+          )}
           <button 
             onClick={() => window.location.reload()} 
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"

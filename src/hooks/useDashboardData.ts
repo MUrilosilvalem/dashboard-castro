@@ -50,7 +50,14 @@ export const useDashboardData = () => {
       } catch (error) {
         console.error('Erro ao carregar dados:', error);
         const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
-        setError(errorMessage);
+        
+        // Se for erro de credenciais, mostrar mensagem específica
+        if (errorMessage.includes('Invalid authentication credentials') || 
+            errorMessage.includes('Credenciais do Supabase inválidas')) {
+          setError('Credenciais do Supabase inválidas. Verifique as variáveis VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY no arquivo .env');
+        } else {
+          setError(errorMessage);
+        }
         
         // Em caso de erro, dados vazios
         setRawData([]);

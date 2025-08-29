@@ -34,7 +34,9 @@ export class DashboardService {
       if (error) {
         console.error('Erro ao buscar dados:', error);
         // Se for erro de autenticação e Supabase está configurado, mostrar erro específico
-        if (error.message?.includes('Invalid authentication credentials')) {
+        if (error.message?.includes('Invalid authentication credentials') || 
+            error.message?.includes('JWT expired') ||
+            error.message?.includes('invalid claim')) {
           throw new Error('Credenciais do Supabase inválidas. Verifique as variáveis VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY no arquivo .env');
         }
         throw new Error(`Erro ao carregar dados: ${error.message}`);
@@ -79,7 +81,9 @@ export class DashboardService {
         .order('unidade');
 
       if (unidadesError) {
-        if (unidadesError.message?.includes('Invalid authentication credentials')) {
+        if (unidadesError.message?.includes('Invalid authentication credentials') || 
+            unidadesError.message?.includes('JWT expired') ||
+            unidadesError.message?.includes('invalid claim')) {
           throw new Error('Credenciais do Supabase inválidas. Verifique as variáveis VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY no arquivo .env');
         }
         throw unidadesError;
@@ -92,7 +96,9 @@ export class DashboardService {
         .order('atendente');
 
       if (atendentesError) {
-        if (atendentesError.message?.includes('Invalid authentication credentials')) {
+        if (atendentesError.message?.includes('Invalid authentication credentials') || 
+            atendentesError.message?.includes('JWT expired') ||
+            atendentesError.message?.includes('invalid claim')) {
           throw new Error('Credenciais do Supabase inválidas. Verifique as variáveis VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY no arquivo .env');
         }
         throw atendentesError;
@@ -106,7 +112,10 @@ export class DashboardService {
     } catch (error) {
       console.error('Erro ao buscar opções disponíveis:', error);
       // Se for erro de credenciais, propagar o erro para mostrar mensagem específica
-      if (error instanceof Error && error.message.includes('Credenciais do Supabase inválidas')) {
+      if (error instanceof Error && (
+        error.message.includes('Credenciais do Supabase inválidas') ||
+        error.message.includes('Invalid authentication credentials')
+      )) {
         throw error;
       }
       // Para outros erros, retornar opções vazias
