@@ -597,61 +597,6 @@ const MetricasTab: React.FC = () => {
       )}
     </div>
   );
-
-  async function handleAddMetricaAtendente() {
-    if (!formDataAtendente.mes_ano || !formDataAtendente.unidade_id || !formDataAtendente.atendente_id) {
-      setMessage({ type: 'error', text: 'Mês/ano, unidade e atendente são obrigatórios' });
-      return;
-    }
-
-    setActionLoading('add');
-    try {
-      await DashboardService.insertMetrica(formDataAtendente);
-      setMessage({ type: 'success', text: 'Métrica de atendente adicionada com sucesso!' });
-      setFormDataAtendente({
-        mes_ano: new Date().toISOString().slice(0, 7),
-        unidade_id: '',
-        atendente_id: '',
-        valor_orcamentos_registrados: 0,
-        valor_orcamentos_convertidos: 0,
-        qtde_exames_vendidos: 0,
-        qtde_pacientes_atendidos: 0,
-        nps: 0
-      });
-      setShowAddForm(false);
-      await loadData();
-    } catch (error) {
-      console.error('Erro ao adicionar métrica:', error);
-      setMessage({ type: 'error', text: 'Erro ao adicionar métrica' });
-    } finally {
-      setActionLoading(null);
-    }
-  }
-
-  async function handleAddMetricaUnidade() {
-    if (!formDataUnidade.mes_ano || !formDataUnidade.unidade_id) {
-      setMessage({ type: 'error', text: 'Mês/ano e unidade são obrigatórios' });
-      return;
-    }
-
-    setActionLoading('add');
-    try {
-      await DashboardService.insertFaturamentoUnidade(formDataUnidade);
-      setMessage({ type: 'success', text: 'Métrica de unidade adicionada com sucesso!' });
-      setFormDataUnidade({
-        mes_ano: new Date().toISOString().slice(0, 7),
-        unidade_id: '',
-        faturamento_total: 0
-      });
-      setShowAddForm(false);
-      await loadData();
-    } catch (error) {
-      console.error('Erro ao adicionar métrica:', error);
-      setMessage({ type: 'error', text: 'Erro ao adicionar métrica' });
-    } finally {
-      setActionLoading(null);
-    }
-  }
 };
 
 export default MetricasTab;
